@@ -205,7 +205,7 @@ function terrain(){
 function makeTunnel(){const palette=['#788b87','#708580','#879792','#687d78','#919e96'],tunnelTop=z=>{let cx=tunnelX(z);return Math.max(3.25,Math.min(rawHeight(cx-3.4,z),rawHeight(cx+3.4,z))-.25)};
  for(let z=48;z<=85;z+=1.35){let cx=tunnelX(z),floor=caveFloor(z),top=tunnelTop(z),ceiling=2.58+.08*Math.sin(z*.47);box(cx,floor-.18,z,3.65,.36,1.5,'#999786','rock');
  for(let s of [-1,1]){let w=2.0+rand(0,.6);box(cx+s*(.68+w/2),floor+(top-floor)/2,z,w,top-floor,1.5,pick(palette),'rock');for(let k=0;k<3;k++)box(cx+s*(.66+rand(0,.09)),floor+.6+k*1.03,z+rand(-.2,.2),.2+rand(0,.17),.60+rand(0,.25),.8+rand(0,.4),pick(palette),'rock')}
- box(cx,ceiling+(top-ceiling)/2,z,3.35,top-ceiling,1.5,pick(palette),'rock');
+ box(cx,ceiling+(top-.04-ceiling)/2,z,3.35,top-.04-ceiling,1.42,pick(palette),'rock');// 顶板缩 4cm/深 1.42：端面与顶面不再与两侧墙板共面打架
  if(z<53||z>80)for(let k=0;k<7;k++){let xx=cx+rand(-5.7,5.7);if(Math.abs(xx-cx)<1.60)continue;let y=height(xx,z)+rand(.1,.6),zz=z+rand(-1,1),sx=rand(.7,1.8),sy=rand(.4,1.2),sz=rand(.7,1.5),col=pick(palette),ry=rand(-.15,.15);rand(-.07,.07);prop(sx>1.1?'boulder':'rock',xx,y,zz,sx,sy,sz,col,ry)}}
  // Mouth arches: tumbled boulders stacked over the ring's outer faces and roof, leaving the passage and the camera line clear.
  for(let s of [-1,1]){const z0=s<0?48:84.45,cx=tunnelX(z0),floor=caveFloor(z0),top=tunnelTop(z0),zf=z0+s*.75;
