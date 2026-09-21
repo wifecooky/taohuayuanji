@@ -182,30 +182,33 @@ const tunnelX=z=>-43+1.05*Math.sin(clamp((z-49)/35,0,1)*PI);
 const channels=[{p:[[-50,-68],[-47,-51],[-44,-37],[-43,-17],[-37,-1],[-32,2]],w:1.65},{p:[[-22,16],[-18,27],[-4,33],[25,32],[55,24],[72,27]],w:1.6},{p:[[-43,-25],[-24,-24],[-14,-23],[-13,-7],[7,-7],[7,14],[-4,25],[-18,27]],w:.68},{p:[[7,12],[23,12],[40,12],[49,21],[55,24]],w:.58}];
 function segDist(x,z,a,b){let vx=b[0]-a[0],vz=b[1]-a[1],t=clamp(((x-a[0])*vx+(z-a[1])*vz)/(vx*vx+vz*vz),0,1);return Math.hypot(x-a[0]-vx*t,z-a[1]-vz*t)}
 function cDist(x,z,p){let d=1e5;for(let i=1;i<p.length;i++)d=Math.min(d,segDist(x,z,p[i-1],p[i]));return d}
+function shore(x,z){let s=0;if(z>=87){let w=2.05+.4*Math.sin(z*.077),d=Math.abs(x-streamX(z));s=1-smooth(w+.2,w+2.8,d)}if(z<43&&z>-74){s=Math.max(s,1-smooth(1.15,1.27,pondR(x,z)));for(let c of channels)s=Math.max(s,1-smooth(c.w+.2,c.w+1.7,cDist(x,z,c.p)))}return s}
 function pondR(x,z){let xx=(x+27)/17.5,zz=(z-7)/10.5,a=Math.atan2(zz,xx);return Math.hypot(xx,zz)/(1+.085*Math.sin(a*3)+.04*Math.cos(a*5))}
 const peaks=[[-95,-11,57,27,38],[-80,-60,65,28,32],[-48,-91,53,25,27],[-10,-107,75,25,26],[31,-101,51,27,28],[67,-83,68,27,32],[91,-42,63,24,32],[95,12,47,25,30],[82,49,43,30,23],[34,67,29,30,15],[-7,68,26,28,14],[-52,68,30,24,12],[-80,44,37,23,28],[-78,111,27,19,35],[-8,126,24,18,32],[-73,173,31,24,28],[4,189,40,29,35],[-140,-99,88,33,32],[-81,-146,100,40,39],[-12,-164,119,35,37],[51,-143,94,33,37],[120,-104,100,30,41],[149,-28,90,32,41],[-149,4,85,28,39],[-160,97,87,39,38],[149,82,93,40,45],[-120,-224,120,45,34],[-28,-248,145,43,43],[75,-218,115,48,36],[180,-170,125,55,48],[-204,-139,126,49,52]];
 function baseFloor(x,z){return .46+.075*Math.sin(x*.13)*Math.cos(z*.09)+Math.max(0,-z-32)*.0025}
-function rawHeight(x,z){let h=0;const wx=x+(noise(x*.035,z*.035)-.5)*19,wz=z+(noise(x*.04+40,z*.04)-.5)*14;for(let ip=0;ip<peaks.length;ip++){let p=peaks[ip];let q=Math.pow(Math.abs((wx-p[0])/p[3]),1.85)+Math.pow(Math.abs((wz-p[1])/p[4]),1.9);if(q<9)h=Math.max(h,p[2]*(ip<13?.45:ip<17?.72:.56)*Math.exp(-q))}let rad=Math.hypot(x/89,(z+13)/85);if(z<45)h*=smooth(.70,1.10,rad);h=Math.max(0,h-.8);let floor=baseFloor(x,z);h*=1+(noise(x*.065,z*.047)-.5)*.32*smooth(3,12,h);h=Math.max(h,7.0*Math.exp(-Math.pow((x+43)/10,2)-Math.pow((z-78)/9,2)));return floor+h+(h>5?(noise(x*.13,z*.13)-.5)*2.1:0)}
+function rawHeight(x,z){let h=0;const wx=x+(noise(x*.035,z*.035)-.5)*19,wz=z+(noise(x*.04+40,z*.04)-.5)*14;for(let ip=0;ip<peaks.length;ip++){let p=peaks[ip];let q=Math.pow(Math.abs((wx-p[0])/p[3]),1.85)+Math.pow(Math.abs((wz-p[1])/p[4]),1.9);if(q<9)h=Math.max(h,p[2]*(ip<13?.45:ip<17?.72:.56)*Math.exp(-q))}let rad=Math.hypot(x/89,(z+13)/85);if(z<45)h*=smooth(.70,1.10,rad);h=Math.max(0,h-.8);let floor=baseFloor(x,z);h*=1+(noise(x*.065,z*.047)-.5)*.32*smooth(3,12,h);h=Math.max(h,7.0*Math.exp(-Math.pow((x+43)/10,2)-Math.pow((z-78)/9,2)),6.8*Math.exp(-Math.pow((x-tunnelX(z))/9,2))*smooth(44,54,z)*(1-smooth(80,92,z)));return floor+h+(h>5?(noise(x*.13,z*.13)-.5)*2.1:0)}
 function height(x,z){let h=rawHeight(x,z);if(z>=90&&z<=226){const d=Math.abs(x-streamX(z)),blend=smooth(90,100,z)*(1-smooth(206,226,z))*(1-smooth(7,17,d));h=mix(h,Math.min(h,baseFloor(x,z)+.09+d*.025),blend)}if(h<4&&z<43&&z>-74){let r=pondR(x,z);if(r<1.14)h=mix(-.9,h,smooth(.87,1.14,r));for(let c of channels){let d=cDist(x,z,c.p);if(d<c.w+1.0)h=mix(-.60,h,smooth(c.w*.62,c.w+1.0,d))}}
  if(z>=87){let d=Math.abs(x-streamX(z)),w=2.05+.4*Math.sin(z*.077);if(d<w+1.6)h=mix(-.77,h,smooth(w*.85,w+1.6,d))}if((z>84&&z<94)||(z>41&&z<49)){let d=Math.abs(x-tunnelX(z));if(d<2.2)h=mix(caveFloor(z),h,smooth(1.25,2.2,d))}return h}
 function caveFloor(z){return .40+.12*smooth(49,84,z)}
 function terrain(){
- const grass=C('#88a075'),moss=C('#456e61'),rock=C('#83928a'),soil=C('#b0ad84');
+ const grass=C('#88a075'),moss=C('#456e61'),rock=C('#83928a'),soil=C('#b0ad84'),sand=C('#b9ae88');
  function region(x0,x1,z0,z1,step,outer=false){const pos=[],col=[],idx=[];let nx=Math.round((x1-x0)/step)+1,nz=Math.round((z1-z0)/step)+1;
  for(let j=0;j<nz;j++)for(let i=0;i<nx;i++){let x=x0+i*step,z=z0+j*step,h=height(x,z),slope=Math.hypot(height(x+.8,z)-height(x-.8,z),height(x,z+.8)-height(x,z-.8))/1.6;
- let c=grass.clone().lerp(moss,clamp((h-2)/26,0,.83)).lerp(rock,smooth(.45,1.8,slope)*.43);c.lerp(soil,noise(x*.064+17,z*.064)>.70?.10:0);c.multiplyScalar(.94+.12*noise(x*.054,z*.054));if(h<.08)c=C('#899a84');pos.push(x,h,z);col.push(c.r,c.g,c.b)}
- for(let j=0;j<nz-1;j++)for(let i=0;i<nx-1;i++){let x=x0+(i+.5)*step,z=z0+(j+.5)*step;if(outer===true&&x>-175&&x<175&&z>-181&&z<225)continue;if(outer==='middle'&&x>-67&&x<73&&z>-77&&z<41)continue;if(Math.abs(x-tunnelX(z))<1.70&&z>47&&z<86)continue;let a=j*nx+i,b=a+1,c=a+nx,d=c+1;idx.push(a,c,b,b,c,d)}
+ let c=grass.clone().lerp(moss,clamp((h-2)/26,0,.83)).lerp(rock,smooth(.45,1.8,slope)*.43);c.lerp(soil,noise(x*.064+17,z*.064)>.70?.10:0);c.multiplyScalar(.94+.12*noise(x*.054,z*.054));if(h<1.3)c.lerp(sand,shore(x,z)*(1-smooth(.35,1.3,h))*.85);if(h<.08)c=C('#899a84');pos.push(x,h,z);col.push(c.r,c.g,c.b)}
+ for(let j=0;j<nz-1;j++)for(let i=0;i<nx-1;i++){let x=x0+(i+.5)*step,z=z0+(j+.5)*step;if(outer===true&&x>-175&&x<175&&z>-181&&z<225)continue;if(outer==='middle'&&x>-67&&x<73&&z>-77&&z<41)continue;if(Math.abs(x-tunnelX(z))<1.70&&(z>47&&z<50.5||z>83.5&&z<86))continue;let a=j*nx+i,b=a+1,c=a+nx,d=c+1;idx.push(a,c,b,b,c,d)}
  let g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(pos,3));g.setAttribute('color',new T.Float32BufferAttribute(col,3));g.setIndex(idx);g.computeVertexNormals();let m=mesh(g,new T.MeshStandardMaterial({vertexColors:true,roughness:1,flatShading:true}),0,0,0,false);m.name='Continuous mountain terrain';}
  region(-174,174,-180,224,2,'middle');region(-66,72,-76,40,.75);region(-450,450,-456,456,6,true);
  const base=mesh(new T.PlaneGeometry(2200,2200),mat('#899d87'),0,-1.4,0,false);base.rotation.x=-PI/2;
  // Fine, discontinuous geological ledges retain the voxel language without staircase mountains.
  for(let i=0;i<630;i++){let x=rand(-112,112),z=rand(-115,70),h=height(x,z);if(h<7||h>56||Math.abs(x-tunnelX(z))<6&&z>43)continue;let slope=Math.hypot(height(x+1,z)-height(x-1,z),height(x,z+1)-height(x,z-1));if(slope<1.4)continue;let sx=rand(.4,1.4);prop(sx>.9?'boulder':'rock',x,h-.18,z,sx,rand(.3,.85),rand(.4,1.2),pick(['#7e9085','#82948a','#6f877c']),rand(-.14,.14))}
 }
-function makeTunnel(){const palette=['#788b87','#708580','#879792','#687d78','#919e96'];
- for(let z=48;z<=85;z+=1.35){let cx=tunnelX(z),floor=caveFloor(z),top=Math.max(3.25,rawHeight(cx,z)+.45),ceiling=2.58+.08*Math.sin(z*.47);box(cx,floor-.18,z,3.65,.36,1.5,'#999786','rock');
+function makeTunnel(){const palette=['#788b87','#708580','#879792','#687d78','#919e96'],tunnelTop=z=>{let cx=tunnelX(z);return Math.max(3.25,Math.min(rawHeight(cx-3.4,z),rawHeight(cx+3.4,z))-.25)};
+ for(let z=48;z<=85;z+=1.35){let cx=tunnelX(z),floor=caveFloor(z),top=tunnelTop(z),ceiling=2.58+.08*Math.sin(z*.47);box(cx,floor-.18,z,3.65,.36,1.5,'#999786','rock');
  for(let s of [-1,1]){let w=2.0+rand(0,.6);box(cx+s*(.68+w/2),floor+(top-floor)/2,z,w,top-floor,1.5,pick(palette),'rock');for(let k=0;k<3;k++)box(cx+s*(.66+rand(0,.09)),floor+.6+k*1.03,z+rand(-.2,.2),.2+rand(0,.17),.60+rand(0,.25),.8+rand(0,.4),pick(palette),'rock')}
  box(cx,ceiling+(top-ceiling)/2,z,3.35,top-ceiling,1.5,pick(palette),'rock');
- if(z<53||z>80)for(let k=0;k<7;k++){let xx=cx+rand(-5.7,5.7);if(Math.abs(xx-cx)<1.60)continue;box(xx,rawHeight(xx,z)+rand(.1,.6),z+rand(-1,1),rand(.7,1.8),rand(.4,1.2),rand(.7,1.5),pick(palette),'rock',0,rand(-.15,.15),rand(-.07,.07))}}
+ if(z<53||z>80)for(let k=0;k<7;k++){let xx=cx+rand(-5.7,5.7);if(Math.abs(xx-cx)<1.60)continue;let y=height(xx,z)+rand(.1,.6),zz=z+rand(-1,1),sx=rand(.7,1.8),sy=rand(.4,1.2),sz=rand(.7,1.5),col=pick(palette),ry=rand(-.15,.15);rand(-.07,.07);prop(sx>1.1?'boulder':'rock',xx,y,zz,sx,sy,sz,col,ry)}}
+ // Mouth piles: boulders stacked against the outer ring faces so the flat box wall reads as a rock face.
+ for(let s of [-1,1]){let z=s<0?48:84.45,cx=tunnelX(z),floor=caveFloor(z),top=tunnelTop(z);for(let k=0;k<14;k++){let r=hash(k*3.1+s,k*1.7),r2=hash(k*.9+s,k+2),x=cx+(r-.5)*6.6,y=floor+.5+r2*(top-floor-.4);if(Math.abs(x-cx)<2.0&&y<3.2)continue;prop('boulder',x,y,z+s*(.9+hash(k,s+7)*.9),1.1+r2*1.2,.8+r*1.0,1.0+hash(k+1,k)*.9,palette[k%5],(r-.5)*.6)}}
  // Small portal daylight only: no portal glow or artificial transition.
  const bounce=new T.PointLight(C('#e3ead0'),.34,10,1.5);bounce.position.set(-43,2.8,52);scene.add(bounce);
 }
@@ -233,10 +236,14 @@ function makeWater(){reflectionTarget=new T.WebGLRenderTarget(512,512,{minFilter
  for(let c of channels){let ps=[];for(let i=1;i<c.p.length;i++)for(let j=0;j<12;j++){let t=j/12;ps.push([mix(c.p[i-1][0],c.p[i][0],t),mix(c.p[i-1][1],c.p[i][1],t)])}ps.push(c.p[c.p.length-1]);ribbon(ps,c.w)}let ext=[];for(let z=88;z<=232;z+=.8)ext.push([streamX(z),z]);ribbon(ext,z=>2.05+.4*Math.sin(z*.077));
  // Submerged stones, shore fragments, young reeds — three-dimensional, not decals.
  for(let i=0;i<185;i++){let a=rand(0,TAU),r=rand(.94,1.15),x=-27+17.5*Math.cos(a)*r,z=7+10.5*Math.sin(a)*r;let y=height(x,z);prop('rock',x,y+rand(.08,.2),z,rand(.25,.8),rand(.16,.40),rand(.25,.6),pick(['#8a9680','#a0a58c','#717f74']),rand(-.7,.7));if(i%3===0&&y>.04)reeds(x,z,y)}
- for(let z=91;z<195;z+=1.7){for(let s of [-1,1]){let x=streamX(z)+s*rand(2.1,3.1);prop('rock',x,height(x,z)+.12,z,rand(.3,.75),rand(.20,.40),rand(.25,.60),pick(['#8d998b','#a3aa96','#687f74']),rand(-.3,.3));}}
+ for(let z=91;z<195;z+=1.7){for(let s of [-1,1]){let x=streamX(z)+s*rand(2.1,3.1);prop('rock',x,height(x,z)+.12,z,rand(.3,.75),rand(.20,.40),rand(.25,.60),pick(['#8d998b','#a3aa96','#687f74']),rand(-.3,.3));
+  const w=2.05+.4*Math.sin(z*.077);for(let k=0;k<3;k++){let r=hash(z*1.9+k,s*3+k),xx=streamX(z)+s*(w+.15+r*2.2),zz=z+(hash(k,z+s)-.5)*1.6,y=height(xx,zz);if(y>.1&&y<1.3)prop('rock',xx,y+.03,zz,.12+r*.22,.06+r*.1,.12+r*.2,['#9aa593','#aab08f','#7f8d81'][k],r*6)}
+  let r=hash(z*.7,s);if(r<.3){let xx=streamX(z)+s*(w+.1+r*2.5),y=height(xx,z);if(y>.1)reedClump(xx,z,y,r)}}}
+ for(let c of channels)for(let i=1;i<c.p.length;i++){let a=c.p[i-1],b=c.p[i],len=Math.hypot(b[0]-a[0],b[1]-a[1]),nx=(b[1]-a[1])/len,nz=(a[0]-b[0])/len;for(let t=.6;t<len;t+=1.2)for(let s of [-1,1]){let r=hash(a[0]*3+t,a[1]*3+s),d=c.w+.25+r*1.3,x=mix(a[0],b[0],t/len)+nx*d*s,z=mix(a[1],b[1],t/len)+nz*d*s,y=height(x,z);if(y<.15||y>1.2)continue;if(r<.22)reedClump(x,z,y,r*3);else prop('rock',x,y+.03,z,.1+r*.22,.06+r*.1,.1+r*.2,['#9aa593','#aab08f','#7f8d81'][Math.floor(r*3)],r*6)}}
  // Narrow, working landing for drawing water.
  for(let i=0;i<9;i++)box(-12.3,.66,8+i*.24,3.1,.12,.22,pick(['#9c8f70','#867b60']));for(let x of [-13.5,-11.1])for(let z of [8,9.7])box(x,.10,z,.17,1.05,.17,'#746b53');
 }
+function reedClump(x,z,y,r){for(let k=0;k<5;k++){let a=r*TAU+k*2.4,xx=x+Math.cos(a)*.22,zz=z+Math.sin(a)*.22,h=.45+.6*hash(k+r*9,r*7);box(xx,y+h/2,zz,.035,h,.038,['#74834c','#8e9c5f','#7d8f55'][(k+Math.floor(r*3))%3],'detail',(r-.5)*.16,a,(hash(k,r*5)-.5)*.2)}}
 function reeds(x,z,y){for(let k=0;k<4;k++){let xx=x+rand(-.25,.25),zz=z+rand(-.25,.25),h=rand(.4,1.1);box(xx,y+h/2,zz,.035,h,.038,pick(['#74834c','#8e9c5f']),'detail',rand(-.09,.09),0,rand(-.12,.12));box(xx+.06,y+h*.65,zz,.045,h*.42,.015,'#9ba567','detail',0,0,-.5)}}
 // Transform a village element from its own local plan into the world.
 function localBox(ox,oz,a,x,y,z,sx,sy,sz,h,cat='solid',rx=0,ry=0,rz=0){let ca=Math.cos(a),sa=Math.sin(a);box(ox+x*ca+z*sa,y,oz-x*sa+z*ca,sx,sy,sz,h,cat,rx,ry+a,rz)}
@@ -400,8 +407,13 @@ function meadowExtras(){
  const m=new T.Mesh(geometryFinish(grass),new T.MeshStandardMaterial({vertexColors:true,roughness:1,side:T.DoubleSide}));m.receiveShadow=true;scene.add(m);
  // Rocks and a branch frame the default inner-valley view, without inventing an interior peach orchard.
  const rocks=[[-44.8,28.8,3.4,5.4,3.0],[-45.3,31.5,2.3,3.8,2.5],[-31.2,40,3.1,5.2,2.6],[-44,32.6,1.8,2.6,2.1]];
- for(let [x,z,sx,sy,sz]of rocks){let y=height(x,z);const g=new T.IcosahedronGeometry(1,1),m=new T.Mesh(g,mat('#7c8c7b'));m.position.set(x,y+sy*.46,z);m.scale.set(sx,sy,sz);m.rotation.set(.12,rand(0,TAU),-.08);m.castShadow=m.receiveShadow=true;scene.add(m);solids.push({x,z,r:Math.max(sx,sz)*.96,h:y+sy*1.5})}
- mulberry(-48,29,1.95);mulberry(-30,41,1.6);
+ const rockMat=new T.MeshStandardMaterial({vertexColors:true,roughness:1}),rockCols=[C('#66766a'),C('#7c8c7b'),C('#8d9a86'),C('#7f9a6f')];
+ for(let [x,z,sx,sy,sz]of rocks){let y=height(x,z);const g=new T.IcosahedronGeometry(1,2),p=g.attributes.position,v=V(),col=[];
+  for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i);let k=1+(noise(v.x*2.4+x,v.z*2.4+z)-.5)*.42+(noise(v.y*3.3+z,v.x*3.3-x)-.5)*.22;v.multiplyScalar(k);if(v.y<-.15)v.y=-.15+(v.y+.15)*.55;p.setXYZ(i,v.x,v.y,v.z)}
+  g.computeVertexNormals();const n=g.attributes.normal;for(let i=0;i<p.count;i+=3){let up=n.getY(i),f=hash(i*.37+x,z-i*.11),c=rockCols[up>.55&&f>.35?3:up>.2?2:f>.6?1:0].clone().multiplyScalar(.9+f*.2);for(let k=0;k<3;k++)col.push(c.r,c.g,c.b)}
+  g.setAttribute('color',new T.Float32BufferAttribute(col,3));const m=new T.Mesh(g,rockMat);m.position.set(x,y+sy*.46,z);m.scale.set(sx,sy,sz);m.rotation.set(.12,rand(0,TAU),-.08);m.castShadow=m.receiveShadow=true;scene.add(m);solids.push({x,z,r:Math.max(sx,sz)*.96,h:y+sy*1.5});
+  for(let k=0;k<7;k++){let a=hash(k+x,z)*TAU,r=hash(k*3,x+z)*.5,bx=x+Math.cos(a)*(sx*.9+.3+r),bz=z+Math.sin(a)*(sz*.9+.3+r),by=height(bx,bz),w=.5+r*.6;if(k<4)prop('grass',bx,by+w*.5,bz,w,w*.9,w,['#6f8a5c','#7c9866','#889f6c'][k%3],a,'detail');else prop('rock',bx,by+.06,bz,.25+r*.5,.14+r*.2,.22+r*.4,['#8d998b','#a3aa96','#7f8d81'][k%3],a)}}
+ mulberry(-50.2,27,1.95);mulberry(-27.6,43.8,1.6);
 }
 function makeBlossomWeather(){
  initBotany();const pm=new T.MeshStandardMaterial({vertexColors:true,roughness:.80,side:T.DoubleSide,emissive:C('#773648'),emissiveIntensity:.055});
