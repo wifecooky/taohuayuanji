@@ -80,6 +80,7 @@ body.dusk .header:before{background:radial-gradient(ellipse at 35% 45%,rgba(34,5
 .story-top-restore{position:fixed;right:32px;top:26px;z-index:8;width:36px;height:36px;border-radius:50%;font-size:20px;line-height:1;color:#35473f}
 @media(max-width:760px){.story-top-restore{right:13px;top:88px}}
 @media(max-height:480px){.story-top-restore{top:10px;right:13px}}
+.story-reader{transition:background-color .6s,border-color .6s,box-shadow .6s}.story-reader.quiet{background:transparent;border-color:transparent;box-shadow:none;backdrop-filter:none}.story-reader .story-reader-top,.story-reader .story-action-strip,.story-reader .story-controls,.story-reader .story-progress{transition:opacity .6s,visibility .6s}.story-reader.quiet .story-reader-top,.story-reader.quiet .story-action-strip,.story-reader.quiet .story-controls,.story-reader.quiet .story-progress{opacity:0;visibility:hidden;pointer-events:none}.story-reader.quiet .story-original,.story-reader.quiet .story-gloss,.story-reader.quiet .story-footnotes{text-shadow:0 0 6px rgba(247,246,232,.95),0 0 14px rgba(247,246,232,.8),0 1px 2px rgba(247,246,232,.9)}
 </style>
 </head>
 <body>
@@ -912,7 +913,10 @@ function saveStory(){
  try{localStorage.setItem('taoyuan-fulltext-botanical-v3',JSON.stringify(data))}catch(_){}
  $('story-resume').hidden=false;$('story-resume').textContent=`接着上次 · ${String(data.index+1).padStart(2,'0')} ${chapters[data.index].title}`;
 }
-let storyTopTimer;
+let storyTopTimer,readerQuietTimer;
+function setReaderQuiet(on){$('story-reader').classList.toggle('quiet',on)}
+function pokeReader(){if(!story.active)return;setReaderQuiet(false);clearTimeout(readerQuietTimer);readerQuietTimer=setTimeout(()=>{if(!story.active)return;if(!story.paused&&!story.waiting&&!story.finished&&!$('story-reader').matches(':hover'))setReaderQuiet(true);else pokeReader()},3000)}
+for(const ev of ['pointermove','pointerdown','keydown','wheel','touchstart'])document.addEventListener(ev,()=>{if(story.active)pokeReader()},{passive:true,capture:true});
 function setStoryTopHidden(hidden){
  document.body.classList.toggle('top-controls-hidden',hidden);
  $('story-top-restore').hidden=!hidden;
@@ -929,7 +933,7 @@ function startStory(index=0,resume=false){
  jumpStory(index,resume?Math.min(story.saved.elapsed||0,chapters[index].duration*.99):0,false);updateAutoButton();$('story-speed').value=String(story.speed);$('story-sound').innerHTML='<svg viewBox="0 0 24 24">'+icons[audioEnabled?'sound':'muted']+'</svg>';$('story-sound').setAttribute('aria-pressed',audioEnabled);
  if(reduced)toast('已启用定点观景与逐章慢读；不自动移动镜头。');else toast('已展开全文旅程 · 拖动环顾，空格暂停，← → 回看章节。');
  $('story-play').focus({preventScroll:true});
- clearTimeout(storyTopTimer);setStoryTopHidden(false);storyTopTimer=setTimeout(()=>{if(story.active)setStoryTopHidden(true)},3000);
+ clearTimeout(storyTopTimer);setStoryTopHidden(false);storyTopTimer=setTimeout(()=>{if(story.active)setStoryTopHidden(true)},3000);pokeReader();
 }
 function jumpStory(index,elapsed=0,showCut=true){
  const priorQ=camera.quaternion.clone(),priorI=story.index;index=clamp(index,0,chapters.length-1);story.blendQ=story.active&&index===priorI+1&&!chapters[index].cut?priorQ:null;story.blendStart=elapsed;cancelStorySpeech();story.index=index;story.elapsed=clamp(elapsed,0,chapters[index].duration);story.paused=false;story.waiting=false;story.finished=false;story.lookX=story.lookY=0;story.zoom=1;storyLastWeather='';$('story-ending').classList.remove('on');
@@ -941,7 +945,7 @@ function jumpStory(index,elapsed=0,showCut=true){
  renderer.shadowMap.needsUpdate=true;syncNarrationToStory(!story.paused);saveStory();
 }
 function stopStory(home=false){
- if(!story.active)return;clearTimeout(storyTopTimer);setStoryTopHidden(false);saveStory();cancelStorySpeech();story.active=false;story.paused=false;story.finished=false;closeStoryDrawer(false);document.body.classList.remove('storying','hidden-ui');$('story-ending').classList.remove('on');$('story-hotspot').style.display='none';$('story-response').classList.remove('on');$('scene-cut').classList.remove('on');
+ if(!story.active)return;clearTimeout(storyTopTimer);setStoryTopHidden(false);clearTimeout(readerQuietTimer);setReaderQuiet(false);saveStory();cancelStorySpeech();story.active=false;story.paused=false;story.finished=false;closeStoryDrawer(false);document.body.classList.remove('storying','hidden-ui');$('story-ending').classList.remove('on');$('story-hotspot').style.display='none';$('story-response').classList.remove('on');$('scene-cut').classList.remove('on');
  clearTimeout(responseTimeout);clearTimeout(cutTimeout);paused=story.oldPaused;setWeather(story.oldWeather);applyNarrativeWorld(-1,0);updatePauseUI();
  if(home)setShot(2);else{let d=V();camera.getWorldDirection(d);manualLook={p:camera.position.clone(),yaw:Math.atan2(d.x,d.z),pitch:Math.asin(d.y)};caption(camera.position.z>100?0:camera.position.z>48?1:2)}
  $('story-start').focus({preventScroll:true});
@@ -949,7 +953,7 @@ function stopStory(home=false){
 function toggleStoryPause(force){
  if(!story.active)return;if(story.finished){if(force!==true)jumpStory(story.index);return}
  if(story.waiting){if(force!==true)nextStory();return}
- story.paused=typeof force==='boolean'?force:!story.paused;
+ story.paused=typeof force==='boolean'?force:!story.paused;pokeReader();
  if(story.voice){if(story.paused)narrationAudio.pause();else syncNarrationToStory(true)}
  updateStoryPlay();saveStory();
 }
