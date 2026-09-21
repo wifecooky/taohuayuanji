@@ -638,6 +638,7 @@ function person(x,z,role='chat',angle=0,s=1,clothes='#71847d',opts={}){const roo
  const arms=[],wide=!work&&!kid;for(let side of [-1,1]){const arm=new T.Group();arm.position.set(side*.25,TO-.035,0);upper.add(arm);const len=wide?.42:.38,cuff=wide?.14:.082;
  shapesMesh([[robeGeo(.087,cuff,len),0,-len/2,0,clothes],[geoCyl(cuff,cuff,.027,24),0,-len-.01,0,inner],[geoSph(.055),0,-len-.065,0,skin,.76,1,.57],[geoSph(.022),-side*.033,-len-.052,.025,skin,.7,1,.75]],arm);arm.rotation.z=side*.12;arms.push(arm)}
 
+ if(opts.fisher){const straw=new T.MeshStandardMaterial({color:'#6e5e3c',roughness:.95,flatShading:true,side:T.DoubleSide});for(const [rt,rb,h,y] of [[.34,.46,.36,TO-.16],[.37,.50,.24,TO-.40]]){const cape=new T.Mesh(new T.CylinderGeometry(rt,rb,h,18,1,true),straw);cape.position.set(0,y,0);upper.add(cape)}const yoke=new T.Mesh(new T.SphereGeometry(.30,18,8,0,TAU,0,1.25),straw);yoke.position.set(0,TO-.11,0);upper.add(yoke);const hat=new T.Mesh(new T.ConeGeometry(.41,.21,28),straw);hat.position.set(0,HD+.20,0);upper.add(hat)}// 渔人：蓑衣、斗笠
  let tool=null;
  if(role==='farm'){upper.rotation.x=.5;arms.forEach(a=>a.rotation.x=-1.0);legs[0].rotation.x=.35;legs[1].rotation.x=-.30;tool=new T.Group();root.add(tool);partsMesh([[.18,.60,.55,.045,1.32,.048,'#92774e',.44],[.18,.03,.82,.40,.06,.12,'#706b52']],tool);const hat=new T.Mesh(new T.ConeGeometry(.40,.19,32),mat('#b5a070'));hat.position.set(0,HD+.24,0);upper.add(hat)}
  if(role==='water'){legs.forEach(l=>{l.rotation.x=-1.6;l.knee.rotation.x=1.97});root.position.y-=.57;upper.rotation.x=.55;arms[0].rotation.x=-.85;arms[1].rotation.x=-.65;const props=new T.Group();props.position.y=.57;root.add(props);partsMesh([[-.30,.14,.42,.30,.16,.28,'#8c805f'],[-.30,.24,.42,.26,.03,.24,'#b9c4c2'],[.34,.11,.40,.44,.04,.30,'#c6b89a'],[.34,.15,.40,.06,.04,.30,'#7a6a52']],props)}
@@ -646,7 +647,7 @@ function person(x,z,role='chat',angle=0,s=1,clothes='#71847d',opts={}){const roo
  animated.push({type:'human',root,upper,arms,legs,tool,role,x,z,y:root.position.y,phase:rand(0,TAU)});return root}
 function animal(x,z,type='hen',angle=0){const g=new T.Group();g.position.set(x,height(x,z)+.10,z);g.rotation.y=angle;scene.add(g);let parts;if(type==='dog'){parts=[[0,.47,0,.38,.37,.77,'#a99b7b'],[0,.61,.44,.28,.33,.30,'#a99b7b'],[0,.55,.61,.20,.15,.21,'#b4a282'],[-.13,.77,.43,.12,.20,.14,'#746c55',0,0,-.20],[.13,.77,.43,.12,.20,.14,'#746c55',0,0,.20],[0,.62,-.47,.13,.44,.12,'#a99b7b',-.65],[-.14,.21,.28,.12,.37,.12,'#897e61'],[.14,.21,.28,.12,.37,.12,'#897e61'],[-.14,.21,-.28,.12,.37,.12,'#897e61'],[.14,.21,-.28,.12,.37,.12,'#897e61']]}else{parts=[[0,.32,0,.29,.28,.43,type==='hen'?'#ded2ac':'#aa8a61'],[0,.50,.19,.17,.25,.16,'#cfb789'],[0,.66,.20,.06,.11,.12,'#9d5c48'],[0,.51,.31,.10,.055,.12,'#bba167'],[0,.41,-.25,.20,.31,.10,'#796f55',-.50],[-.09,.095,0,.026,.20,.031,'#b6975e'],[.09,.095,0,.026,.20,.031,'#b6975e']]}
  const body=partsMesh(parts,g);animated.push({type,root:g,body,x,z,phase:rand(0,TAU)});return g}
-function life(){person(-25,-16,'farm',.4,1,'#5b6b8a');person(-3,3,'farm',-.3,1,'#a67b4e');person(21,-10,'chat',1.1,1,'#4c5f7d');person(22.7,-10.7,'chat',-1.1,.95,'#c7b48f',{female:true});person(-12.7,9.1,'water',-1.9,1,'#9a7d8a',{female:true});person(32.1,-3.8,'sit',.25,1,'#7d5a40',{hair:'#c9c0a4',beard:'#b7b0a0'});person(21.7,-5.1,'water',-1,.97,'#5d6f8f',{female:true});person(25,3,'child',-.6,1,'#c26d5a');person(26.1,4,'child',1.1,.95,'#d9c9a2');person(45,-30,'chat',2.7,1,'#8a6b52');person(streamX(96)-3.7,96,'chat',-.25,.97,'#6c7c8f',{work:true});
+function life(){person(-25,-16,'farm',.4,1,'#5b6b8a');person(-3,3,'farm',-.3,1,'#a67b4e');person(21,-10,'chat',1.1,1,'#4c5f7d');person(22.7,-10.7,'chat',-1.1,.95,'#c7b48f',{female:true});person(-12.7,9.1,'water',-1.9,1,'#9a7d8a',{female:true});person(32.1,-3.8,'sit',.25,1,'#7d5a40',{hair:'#c9c0a4',beard:'#b7b0a0'});person(21.7,-5.1,'water',-1,.97,'#5d6f8f',{female:true});person(25,3,'child',-.6,1,'#c26d5a');person(26.1,4,'child',1.1,.95,'#d9c9a2');person(45,-30,'chat',2.7,1,'#8a6b52');person(streamX(96)-3.7,96,'chat',-.25,.97,'#6c7c8f',{work:true,fisher:true});
  animal(29,1,'dog',1.5);for(let p of [[35,-4],[36,-3],[37,-4.8],[16,-4.7],[15,-5.5]])animal(...p,'hen',rand(0,TAU));
  // A low bench and some everyday farming tools.
  box(32.3,.67,-4.1,2.4,.16,.53,'#8e7f60');for(let x of [31.4,33.2])box(x,.42,-4.1,.16,.4,.40,'#6e634f');beam([40.8,.55,-29.9],[40.4,2.10,-30.1],.045,'#9c855b','detail');box(40.8,.58,-29.9,.55,.08,.12,'#82755c','detail');
@@ -737,13 +738,23 @@ function narrativeBeam(group,a,b,width,col,depth=width){
 }
 function boat(){
  fisherBoat=new T.Group();fisherBoat.name='渔舟 · 可航行并停泊在山口外';scene.add(fisherBoat);
- const shape=[[-.24,-2.22],[-.65,-1.16],[-.66,1.25],[-.2,2.12],[.2,2.12],[.66,1.25],[.65,-1.16],[.24,-2.22]];
- const floor=new T.Mesh(polyGeo(shape,-.07),mat('#776347'));floor.receiveShadow=true;fisherBoat.add(floor);
- for(let i=0;i<shape.length;i++){const a=shape[i],b=shape[(i+1)%shape.length];narrativeBeam(fisherBoat,[a[0],.15,a[1]],[b[0],.15,b[1]],.15,'#8c7250',.42)}
- partsMesh([[-.32,-.035,0,.17,.06,3.5,'#9b805b'],[-.11,-.035,0,.17,.06,3.6,'#a78b63'],[.11,-.035,0,.17,.06,3.6,'#967a59'],[.32,-.035,0,.17,.06,3.5,'#a3885f'],[0,.27,-.78,1.18,.12,.34,'#aa8e62'],[0,.27,.85,1.18,.12,.34,'#9d8057']],fisherBoat);
- const basket=new T.Mesh(new T.CylinderGeometry(.23,.28,.39,10),mat('#918364'));basket.position.set(-.26,.19,.12);fisherBoat.add(basket);
- const inside=new T.Mesh(new T.CircleGeometry(.20,10),mat('#555b43'));inside.rotation.x=-PI/2;inside.position.set(-.26,.39,.12);fisherBoat.add(inside);
- boatPaddle=new T.Group();fisherBoat.add(boatPaddle);narrativeBeam(boatPaddle,[.12,.41,-1.3],[1.02,.28,1.55],.045,'#b39b6f');partsMesh([[1.02,.27,1.52,.26,.045,.66,'#a58c62',0,.27]],boatPaddle);
+ // 放样船壳：13 个站位，每站 6 点（舷缘-舭-底），首尾翘起、中段平底，比旧的方木拼贴少一堆穿插
+ const L=2.32,N=13,hw=z=>.70*Math.sqrt(Math.max(.02,1-Math.pow(Math.abs(z)/L,2.6))),yb=z=>-.05+.30*Math.pow(Math.abs(z)/2.2,3),yt=z=>.30+.18*Math.pow(z/2.2,2);
+ const st=[];for(let i=0;i<N;i++){const z=-L+2*L*i/(N-1),w=hw(z),bw=w*.62,b=yb(z),t=yt(z);st.push({z,pts:[[-w,t],[-bw*1.06,b+.11],[-bw,b],[bw,b],[bw*1.06,b+.11],[w,t]]})}
+ const tri=[],push=(p,q,r)=>tri.push(...p,...q,...r);
+ for(let i=0;i<N-1;i++){const A=st[i],B=st[i+1];for(let k=0;k<5;k++){const a0=[A.pts[k][0],A.pts[k][1],A.z],a1=[A.pts[k+1][0],A.pts[k+1][1],A.z],b0=[B.pts[k][0],B.pts[k][1],B.z],b1=[B.pts[k+1][0],B.pts[k+1][1],B.z];push(a0,b0,a1);push(a1,b0,b1)}}
+ for(const E of [st[0],st[N-1]]){const c=[0,(E.pts[0][1]+E.pts[2][1])/2,E.z];for(let k=0;k<5;k++)push(c,[E.pts[k][0],E.pts[k][1],E.z],[E.pts[k+1][0],E.pts[k+1][1],E.z])}
+ const hullGeo=new T.BufferGeometry();hullGeo.setAttribute('position',new T.Float32BufferAttribute(tri,3));hullGeo.computeVertexNormals();
+ const hull=new T.Mesh(hullGeo,new T.MeshStandardMaterial({color:'#6f5a40',roughness:.86,flatShading:true,side:T.DoubleSide}));hull.castShadow=true;hull.receiveShadow=true;fisherBoat.add(hull);
+ for(let i=0;i<N-1;i++)for(const side of [0,5]){const A=st[i],B=st[i+1];narrativeBeam(fisherBoat,[A.pts[side][0],A.pts[side][1]+.03,A.z],[B.pts[side][0],B.pts[side][1]+.03,B.z],.07,'#8c7250',.09)}// 舷缘板
+ const planks=[[-.36,.0,-.1,.19,.04,3.1,'#9b805b'],[-.12,.0,-.1,.19,.04,3.3,'#a78b63'],[.12,.0,-.1,.19,.04,3.3,'#967a59'],[.36,.0,-.1,.19,.04,3.1,'#a3885f']];
+ for(const z of [-.9,.9])planks.push([0,yt(z)-.09,z,2*hw(z)-.06,.05,.26,z<0?'#aa8e62':'#9d8057']);// 座板
+ for(const z of [-1.95,1.85])planks.push([0,yt(z)-.02,z,2*hw(z)-.04,.04,.30,'#8c7250']);// 首尾甲板
+ partsMesh(planks,fisherBoat);
+ const basket=new T.Mesh(new T.CylinderGeometry(.21,.26,.36,14),mat('#918364'));basket.position.set(-.28,.20,.15);fisherBoat.add(basket);
+ const inside=new T.Mesh(new T.CircleGeometry(.185,14),mat('#555b43'));inside.rotation.x=-PI/2;inside.position.set(-.28,.385,.15);fisherBoat.add(inside);
+ // 尾橹：支点在右舷尾部，摇橹动画绕支点转
+ boatPaddle=new T.Group();boatPaddle.position.set(.52,.44,1.55);fisherBoat.add(boatPaddle);narrativeBeam(boatPaddle,[-.55,.14,-.95],[.30,-.32,1.15],.045,'#b39b6f');partsMesh([[.30,-.34,1.20,.20,.04,.60,'#a58c62',0,.34]],boatPaddle);
  const z=94.2,x=streamX(z)+.6;fisherBoat.position.set(x,.07,z);
  dockRope=new T.Group();scene.add(dockRope);narrativeBeam(dockRope,[x-.55,.4,z+.9],[x-2.8,.65,z+1.4],.018,'#b0a282');partsMesh([[x-2.8,.70,z+1.4,.11,.62,.11,'#766b4e']],dockRope);
 }
@@ -778,7 +789,7 @@ function narrativeGeometry(){
  for(let [x,z,col,fem] of [[16.2,-11.2,'#b0895c'],[22.5,-12.2,'#5d6f8f',true],[23.2,-10.8,'#8a5f52']]){const g=person(x,z,'chat',0,.98,col,{female:fem});g.visible=false;visitors.push(g)}
  secondHost=person(38.8,-30.0,'chat',0,1,'#7a6a8c');secondHost.visible=false;
  storyFisher=animated.find(a=>a.type==='human'&&a.z===96)?.root;
- if(storyFisher){const hat=new T.Mesh(new T.ConeGeometry(.40,.14,32),mat('#ae986a'));hat.position.set(0,1.94,0);storyFisher.add(hat)}
+ 
  // A restrained scene at the governor's offices, outside the hidden valley.
  house(-23,252,9,6,0,false,5);path([[-35,268],[-28,263],[-23,258]],1.7,'#b9ac8c');
  for(let [x,z] of [[-28.5,256.6],[-17.5,256.6]])box(x,1.85,z,.23,2.8,.23,'#716045');
