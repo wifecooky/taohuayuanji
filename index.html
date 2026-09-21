@@ -51,7 +51,7 @@ input:focus-visible,select:focus-visible,#view:focus-visible{outline:2px solid v
 .intro .ui{opacity:0;pointer-events:none}
 .intro-veil{position:fixed;inset:0;z-index:15;display:flex;align-items:center;justify-content:center;text-align:center;background:radial-gradient(ellipse at center,rgba(248,248,235,.18) 0%,rgba(248,248,235,.55) 100%);transition:opacity .9s}
 body:not(.intro) .intro-veil{opacity:0;pointer-events:none}
-.intro-card{display:flex;flex-direction:column;align-items:center;gap:14px;padding:0 24px;text-shadow:0 1px 16px rgba(255,255,240,.75)}
+.intro-card{display:flex;flex-direction:column;align-items:center;gap:14px;padding:46px 64px 34px;color:#2f4236;background:rgba(247,246,232,.9);border:1px solid rgba(255,255,246,.8);border-radius:7px;box-shadow:0 18px 70px #1a392b2e;backdrop-filter:blur(18px)}.intro-card .eyebrow,.intro-card .en,.intro-skip{color:#5f6f5c}
 .intro-card .eyebrow{font-size:12px;letter-spacing:.34em;justify-content:center;margin-bottom:6px}
 .intro-title{font-family:var(--serif);font-weight:500;font-size:74px;letter-spacing:.26em;line-height:1.2;display:flex;align-items:center;gap:28px;margin:0}
 .intro-title .divide{width:1px;height:52px;background:var(--line)}
@@ -59,7 +59,7 @@ body:not(.intro) .intro-veil{opacity:0;pointer-events:none}
 .intro-card .en{font-size:11px;letter-spacing:.3em;margin-top:2px;opacity:.6}
 .intro-start{margin-top:34px;font-size:16px;padding:19px 30px;gap:22px}
 .intro-skip{font-size:11px;letter-spacing:.22em;color:var(--muted);background:none;padding:10px;text-decoration:underline dotted;text-underline-offset:5px}
-@media(max-width:760px){.intro-title{font-size:44px;gap:14px;letter-spacing:.2em}.intro-title .divide{height:30px}.intro-title small{font-size:17px}.intro-card .en{display:none}.intro-start{margin-top:24px;font-size:14px;padding:14px 22px}}
+@media(max-width:760px){.intro-card{padding:30px 22px 22px;margin:0 16px}.intro-title{font-size:44px;gap:14px;letter-spacing:.2em}.intro-title .divide{height:30px}.intro-title small{font-size:17px}.intro-card .en{display:none}.intro-start{margin-top:24px;font-size:14px;padding:14px 22px}}
 .scene-note{background:var(--paper)}
 body.dusk .header:before{background:radial-gradient(ellipse at 35% 45%,rgba(34,53,52,.6),transparent 72%)}
 .story-top button{color:#35473f}.story-top .sound-on{color:#fff5e2}
@@ -229,7 +229,8 @@ function makeTunnel(){const palette=['#788b87','#708580','#879792','#687d78','#9
  // Small portal daylight only: no portal glow or artificial transition.
  const bounce=new T.PointLight(C('#e3ead0'),.34,10,1.5);bounce.position.set(-43,2.8,52);scene.add(bounce);
 }
-function path(points,width=1.35,h='#b8ac8e',fixedY=null){let p=points.map(a=>V(a[0],0,a[1])),curve=new T.CatmullRomCurve3(p),pts=curve.getPoints(Math.max(15,points.length*13)),pos=[],idx=[];for(let i=0;i<pts.length;i++){let next=pts[Math.min(i+1,pts.length-1)],prev=pts[Math.max(i-1,0)],t=next.clone().sub(prev).normalize(),perp=V(t.z,0,-t.x);for(let s of [-1,1]){let v=pts[i].clone().addScaledVector(perp,width*.5*s);let y=fixedY===null?Math.max(baseFloor(v.x,v.z),height(v.x,v.z))+.085:fixedY;pos.push(v.x,y,v.z)}if(i<pts.length-1){let j=i*2,mid=pts[i].clone().add(pts[i+1]).multiplyScalar(.5);if(fixedY===null&&height(mid.x,mid.z)<.27){let seg=pts[i+1].clone().sub(pts[i]),len=seg.length(),n=Math.max(1,Math.ceil(len/.22)),ang=Math.atan2(seg.x,seg.z);for(let k=0;k<n;k++){let pp=pts[i].clone().lerp(pts[i+1],(k+.5)/n);box(pp.x,.72,pp.z,width+.25,.14,len/n*.94,pick(['#a89876','#988a69','#b0a07c']),'solid',0,ang);if(k===0)for(let side of [-1,1])box(pp.x+Math.cos(ang)*side*width*.37,.13,pp.z-Math.sin(ang)*side*width*.37,.11,1.15,.11,'#7d7458')}}else idx.push(j,j+2,j+1,j+1,j+2,j+3)}}let geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(pos,3));geo.setIndex(idx);geo.computeVertexNormals();return mesh(geo,mat(h),0,0,0,false)}
+// 板桥两侧加扶手；颜色固定，不动 rng
+function path(points,width=1.35,h='#b8ac8e',fixedY=null){let p=points.map(a=>V(a[0],0,a[1])),curve=new T.CatmullRomCurve3(p),pts=curve.getPoints(Math.max(15,points.length*13)),pos=[],idx=[];for(let i=0;i<pts.length;i++){let next=pts[Math.min(i+1,pts.length-1)],prev=pts[Math.max(i-1,0)],t=next.clone().sub(prev).normalize(),perp=V(t.z,0,-t.x);for(let s of [-1,1]){let v=pts[i].clone().addScaledVector(perp,width*.5*s);let y=fixedY===null?Math.max(baseFloor(v.x,v.z),height(v.x,v.z))+.085:fixedY;pos.push(v.x,y,v.z)}if(i<pts.length-1){let j=i*2,mid=pts[i].clone().add(pts[i+1]).multiplyScalar(.5);if(fixedY===null&&height(mid.x,mid.z)<.27){let seg=pts[i+1].clone().sub(pts[i]),len=seg.length(),n=Math.max(1,Math.ceil(len/.22)),ang=Math.atan2(seg.x,seg.z);for(let k=0;k<n;k++){let pp=pts[i].clone().lerp(pts[i+1],(k+.5)/n);box(pp.x,.72,pp.z,width+.25,.14,len/n*.94,pick(['#a89876','#988a69','#b0a07c']),'solid',0,ang);if(k===0)for(let side of [-1,1])box(pp.x+Math.cos(ang)*side*width*.37,.13,pp.z-Math.sin(ang)*side*width*.37,.11,1.15,.11,'#7d7458');if(width>=1)for(let side of [-1,1]){const ox=Math.cos(ang)*side*(width*.5+.09),oz=-Math.sin(ang)*side*(width*.5+.09);box(pp.x+ox,1.44,pp.z+oz,.06,.06,len/n*1.03,'#8a7d5e','solid',0,ang);if(k===0)box(pp.x+ox,1.115,pp.z+oz,.075,.65,.075,'#7d7458','solid',0,ang)}}}else idx.push(j,j+2,j+1,j+1,j+2,j+3)}}let geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(pos,3));geo.setIndex(idx);geo.computeVertexNormals();return mesh(geo,mat(h),0,0,0,false)}
 function farmPaths(){path([[-43,48],[-40,40],[-31,28],[-13,20],[7,15],[19,2],[21,-15],[20,-33],[32,-51]],1.8);path([[-47,-47],[-26,-43],[-8,-41],[12,-40],[36,-41],[53,-52]],1.3);path([[-44,-25],[-23,-26],[-8,-24],[12,-24],[30,-26],[52,-27]],1.25);path([[-44,-3],[-27,-8],[-9,-5],[6,-2],[17,-4],[43,-5]],1.1);path([[-13,20],[-16,4],[-15,-12],[-16,-26],[-10,-42]],.95);path([[7,15],[25,16],[40,16],[56,23]],1.05);path([[43,-5],[47,-15],[49,-28],[47,-42],[46,-58]],1.15);
  let outside=[];for(let z=168;z>=90;z-=6)outside.push([streamX(z)-3.7,z]);outside.push([-43,85]);path(outside,1.05,'#adad8b');path([[-43,86],[-43,82]],1.5,'#b1ae95',.58);
  // Footpaths cross channels only on small timber bridges.
@@ -299,11 +300,16 @@ function house(x,z,w,d,a=0,thatched=false,variant=0){houseBoxes.push([x,z,w,d,a]
 }
 function jar(x,z,y,s=.45){const g=new T.CylinderGeometry(s*.68,s*.76,s*1.6,8,1),m=mesh(g,mat('#7c735c'),x,y+s*.8,z);mesh(new T.CylinderGeometry(s*.45,s*.45,.07,8),mat('#3b463d'),x,y+s*1.62,z,false);return m}
 function fence(points,h=.82){for(let i=1;i<points.length;i++){let a=points[i-1],b=points[i],len=Math.hypot(b[0]-a[0],b[1]-a[1]),n=Math.ceil(len/.65);for(let j=0;j<=n;j++){let t=j/n,x=mix(a[0],b[0],t),z=mix(a[1],b[1],t),y=baseFloor(x,z);box(x,y+h*.5,z,.07,h+rand(-.08,.12),.07,pick(['#89916a','#979674','#7c855f']),'solid',0,0,rand(-.04,.04))}for(let yy of [.25,.65])beam([a[0],baseFloor(...a)+yy*h/.82,a[1]],[b[0],baseFloor(...b)+yy*h/.82,b[1]],.065,'#9c9b77')}}
+let paddyMat=null;
 function field(x,z,w,d,angle,type=0){let y=baseFloor(x,z)+.02;const B=(...p)=>localBox(x,z,angle,...p);let col=['#788768','#637c64','#948a6a','#90a16e'][type];B(0,y-.06,0,w,.10,d,col,'crop');
  // Earthen bunds rise only a handbreadth above the plain.
  for(let s of [-1,1]){B(s*(w/2+.14),y+.08,0,.32,.24,d+.5,'#a8a582','crop');B(0,y+.08,s*(d/2+.14),w+.5,.24,.32,'#a8a582','crop')}
  const stepX=type===2?.52:.53,stepZ=type===2?1.15:.52;for(let ix=-w/2+.42;ix<w/2-.25;ix+=stepX){if(type===2){B(ix,y+.021,0,.14,.032,d-.4,pick(['#756d54','#80735b','#9e916d']),'crop');if(rng()<.48)for(let iz=-d/2+.6;iz<d/2-.3;iz+=1.2)B(ix,y+.11,iz,.06,.2,.045,'#899956','detail');continue}
  for(let iz=-d/2+.35;iz<d/2-.2;iz+=stepZ){if(rng()<.055)continue;let xx=ix+rand(-.055,.055),zz=iz+rand(-.06,.06),hh=rand(.18,.44)*(type===3?1.2:1);let cc=pick(type===1?['#7f9a69','#729063','#9dae75']:['#92a768','#a3b878','#879e5e']);B(xx,y+hh*.5,zz,.055,hh,.055,cc,'crop',.10,0,.07);B(xx+.075,y+hh*.56,zz,.04,hh*.72,.065,cc,'crop',0,0,-.50);B(xx-.06,y+hh*.58,zz+.03,.045,hh*.63,.06,cc,'crop',.20,0,.56)}}
+ // 水田加一层薄水；部分田角立个稻草人。只用 hash，不碰 rng 序列
+ const ca=Math.cos(angle),sa=Math.sin(angle),W=(lx,lz)=>[x+lx*ca+lz*sa,z-lx*sa+lz*ca];
+ if(type===2){paddyMat=paddyMat||new T.MeshStandardMaterial({color:'#9db7ad',transparent:true,opacity:.5,roughness:.22,metalness:.1});const sheen=mesh(polyGeo([W(-w/2,-d/2),W(w/2,-d/2),W(w/2,d/2),W(-w/2,d/2)],y+.045),paddyMat,0,0,0,false);sheen.renderOrder=2}
+ if(hash(x,z)>.58){const px=(hash(x,z+1)>.5?1:-1)*(w/2-.9),pz=(hash(x+1,z)>.5?1:-1)*(d/2-.9);B(px,y+.85,pz,.06,1.7,.06,'#8c7c5a','crop');B(px,y+1.22,pz,1.0,.05,.06,'#8c7c5a','crop');B(px,y+1.18,pz,.46,.42,.16,'#7a6f78','crop');B(px,y+1.48,pz,.2,.2,.2,'#c9b48f','crop');B(px,y+1.62,pz,.44,.05,.44,'#b5a070','crop',0,.4)}
 }
 function agriculture(){field(-29,-17,16,9,-.06,0);field(-32,-34,19,11,.10,1);field(-2,-30,17,11,-.06,2);field(-3,-14,16,9,.04,0);field(-2,4,15,11,-.025,1);field(16,25,19,9,-.07,3);field(37,24,13,8,-.11,2);field(-31,-51,17,10,.17,3);field(-5,-51,19,9,.035,1);field(39,2,13,6,-.08,0);
  // Useful sheds, not ceremonial buildings.
@@ -609,6 +615,12 @@ function outerBanks(){
  for(let i=0;i<500;i++){const x=-54+hash(i,12.1)*22,z=36+hash(i,13.3)*22,dx=Math.abs(x-tunnelX(z)),h=height(x,z);if(dx<2.6||dx>9.5||h<1.2||Math.hypot(x-sp[0],z-sp[2])<3.5)continue;
   const t=hash(i,14.7);if(t<.35){const w=.8+.7*hash(i,4.1);prop('grass',x,h+.3,z,w,.6+.5*hash(i,5.3),w,bush[Math.floor(hash(i,6.1)*4)],hash(i,7.7)*PI,'detail')}
   else if(t<.55){const sx=.5+.9*hash(i,8.3);prop(sx>.9?'boulder':'rock',x,h-.15,z,sx,.3+.5*hash(i,9.1),.5+.8*hash(i,10.3),stone[i%3],(hash(i,11.7)-.5)*.5)}}
+ // 山口上方的坡面（z 56–88）：原来两段都没覆盖到，光秃秃一片。低矮杂木 + 草丛 + 碎石
+ for(let i=0;i<4200;i++){const x=-72+hash(i,15.1)*54,z=56+hash(i,16.3)*32,dx=Math.abs(x-tunnelX(z)),h=height(x,z);if(h<1.3||h>40||(dx<5&&z<64)||(z>84&&Math.abs(x-streamX(z))<5))continue;
+  const g=Math.hypot(height(x+.8,z)-height(x-.8,z),height(x,z+.8)-height(x,z-.8));if(g>2.6)continue;
+  const t=hash(i,17.7);if(t<.06&&h>2.5&&dx>7&&g<1.4)woodlandTree(x,z,.6+.5*hash(i,3.3),false);
+  else if(t<.36){const w=.8+.8*hash(i,4.1);prop('grass',x,h+.3,z,w,.6+.5*hash(i,5.3),w,bush[Math.floor(hash(i,6.1)*4)],hash(i,7.7)*PI,'detail')}
+  else if(t<.46){const sx=.4+.8*hash(i,8.3);prop(sx>.85?'boulder':'rock',x,h-.2,z,sx,.3+.4*hash(i,9.1),.4+.7*hash(i,10.3),stone[i%3],(hash(i,11.7)-.5)*.5)}}
 }
 function mergedParts(parts){const pp=[],nn=[],cc=[],p=boxGeo.attributes.position,n=boxGeo.attributes.normal,m=new T.Matrix4(),nm=new T.Matrix3(),v=V(),normal=V(),obj=new T.Object3D();const indices=boxGeo.index.array;for(let part of parts){let[x,y,z,sx,sy,sz,h,rx=0,ry=0,rz=0]=part;obj.position.set(x,y,z);obj.rotation.set(rx,ry,rz);obj.scale.set(sx,sy,sz);obj.updateMatrix();m.copy(obj.matrix);nm.getNormalMatrix(m);let c=color(h);for(let ix of indices){v.fromBufferAttribute(p,ix).applyMatrix4(m);normal.fromBufferAttribute(n,ix).applyMatrix3(nm).normalize();pp.push(v.x,v.y,v.z);nn.push(normal.x,normal.y,normal.z);cc.push(c.r,c.g,c.b)}}let g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(pp,3));g.setAttribute('normal',new T.Float32BufferAttribute(nn,3));g.setAttribute('color',new T.Float32BufferAttribute(cc,3));return g}
 function partsMesh(parts,parent){let m=new T.Mesh(mergedParts(parts),new T.MeshStandardMaterial({vertexColors:true,roughness:1}));m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
