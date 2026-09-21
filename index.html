@@ -516,11 +516,16 @@ async function loadKit(){if(!T.GLTFLoader||location.protocol==='file:')return;co
  try{await Promise.all(Object.entries(kitNames).map(async([set,names])=>{kit[set]=await Promise.all(names.map(async n=>kitGeometry((await loader.loadAsync('models/'+n+'.glb')).scene)))}))}catch(e){console.warn('Nature kit unavailable, using voxel props',e);for(const k in kit)delete kit[k]}}
 // ez-tree (MIT) procedural trees, generated at load. Bark is faceted vertex colour; leaves are alpha-tested cards whose texture is
 // desaturated so the page palette supplies the colour. Bark and leaves share one material (bark samples a white strip) so a tree is one draw call.
-const ez={},ezLeaf=[['#597966','#65816b','#718b70','#7d977c','#86a085','#93aa8d','#9db494'],['#66853f','#739246','#819f50','#8fab5c','#9db76a','#abc27a','#b9cc8a'],['#456a5e','#4e7667','#588272','#638e7d','#709989','#7ea495','#8daea1'],['#3d5a34','#47683c','#527646','#5f8351','#6c905e','#7a9c6b','#89a879']],ezTint=['#ffffff','#f3efd4','#d8e9df','#e4ecc2','#f2e6cc','#cfe0d4'],ezBark=['#5b6550','#66705a','#4f5946'];
+const ez={},ezSeasons={
+ spring:{pal:[['#6f9a3c','#7ea844','#8db44e','#9bbf5a','#a8c968','#b5d278','#c1da88'],['#5d8a55','#6a985f','#78a56a','#86b176','#94bc83','#a2c690','#b0cf9e'],['#c9707f','#d47f8d','#dd8f9b','#e59fa9','#ebafb7','#f0bfc5','#f4cfd3'],['#e8d2c4','#edd9cc','#f1dfd3','#f4e5da','#f7ebe2','#f9f0e9','#fbf5f0']],far:[1,2]},
+ summer:{pal:[['#597966','#65816b','#718b70','#7d977c','#86a085','#93aa8d','#9db494'],['#66853f','#739246','#819f50','#8fab5c','#9db76a','#abc27a','#b9cc8a'],['#456a5e','#4e7667','#588272','#638e7d','#709989','#7ea495','#8daea1'],['#3d5a34','#47683c','#527646','#5f8351','#6c905e','#7a9c6b','#89a879']],far:[0,3]},
+ autumn:{pal:[['#7a2e24','#8d3a2a','#a04632','#b2543a','#c26443','#cf7550','#d9885e'],['#a25a22','#b3682a','#c37734','#d1863f','#dc964c','#e4a65c','#ebb56e'],['#9a8a2a','#ad9c32','#bfad3c','#cdbb48','#d9c85a','#e2d26e','#e9db84'],['#5c6f34','#6a7d3b','#788b44','#86984e','#94a45a','#a1af68','#aeba78']],far:[0,2]},
+ winter:{pal:[['#6b5a3a','#775f3c','#83693f','#8e7344','#997d4b','#a48854','#ad935e'],['#8a7a3a','#978640','#a39247','#ae9d4f','#b8a85a','#c1b267','#c9bb76'],['#4f5a3a','#586440','#616e47','#6a784e','#748257','#7e8c61','#88966c'],['#5f6b5a','#697562','#737f6b','#7d8974','#87937e','#919d88','#9ba793']],far:[2,3],leaves:.35}},
+ ezSeason=(()=>{const q=new URLSearchParams(location.search).get('season');if(ezSeasons[q])return q;const m=new Date().getMonth()+1;return m<3||m>11?'winter':m<6?'spring':m<9?'summer':'autumn'})(),ezS=ezSeasons[ezSeason],ezTint=['#ffffff','#f3efd4','#d8e9df','#e4ecc2','#f2e6cc','#cfe0d4'],ezBark=['#5b6550','#66705a','#4f5946'];
 function ezOptions(seed,leaf,far){const L=30;return{seed,type:'deciduous',bark:{textured:false},
  branch:{levels:2,angle:{1:55,2:50},children:{0:far?3:4,1:far?2:3},force:{direction:{x:0,y:1,z:0},strength:-.01},gnarliness:{0:.08,1:.12,2:.15},length:{0:L,1:L*.55,2:L*.3},radius:{0:L*.045,1:L*.028,2:L*.018},
   sections:{0:far?4:6,1:far?3:4,2:3},segments:{0:far?4:6,1:far?3:4,2:3},start:{1:.45,2:.3},taper:{0:.6,1:.6,2:.7}},
- leaves:{type:leaf,billboard:far?'single':'double',angle:45,count:far?10:20,start:.15,size:L*.2,sizeVariance:.35}}}
+ leaves:{type:leaf,billboard:far?'single':'double',angle:45,count:Math.round((far?10:20)*(ezS.leaves||1)),start:.15,size:L*.2,sizeVariance:.35}}}
 function ezMaterial(tex){const img=tex.image,w=img.width,h=img.height,c=document.createElement('canvas');c.width=w;c.height=h+8;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,w,8);x.drawImage(img,0,8);
  const d=x.getImageData(0,8,w,h),p=d.data,lum=i=>.3*p[i]+.59*p[i+1]+.11*p[i+2];let sum=0,n=0;for(let i=0;i<p.length;i+=4)if(p[i+3]>128){sum+=lum(i);n++}
  for(let i=0;i<p.length;i+=4){const v=p[i+3]<20?245:Math.min(255,Math.round(lum(i)/sum*n*245));p[i]=p[i+1]=p[i+2]=v}x.putImageData(d,0,8);
@@ -535,9 +540,9 @@ function ezGeometry(t,seed,mat,H,pal){const bg=t.branchesMesh.geometry,lg=t.leav
  const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(pos,3));g.setAttribute('color',new T.Float32BufferAttribute(col,3));g.setAttribute('uv',new T.Float32BufferAttribute(uv,2));g.computeVertexNormals();
  const nm=g.attributes.normal,ctr=b.getCenter(V()),rad=b.getSize(V()).length()/2,q=V();for(let i=bi.length;i<nm.count;i++){q.fromBufferAttribute(g.attributes.position,i).sub(ctr).divideScalar(rad);q.y+=1.2;q.normalize();nm.setXYZ(i,q.x,q.y,q.z)}
  g.computeBoundingBox();const k=H/g.boundingBox.max.y;g.scale(k,k,k);g.computeBoundingBox();g.computeBoundingSphere();g.userData.mat=mat;return g}
-async function ezTrees(){const EZ=window['@dgreenheck/ez-tree'];if(!EZ)return;const specs={near:[[35729,'ash',3.8,0],[13977,'aspen',4.3,1],[26867,'ash',4.0,2],[8123,'oak',3.6,3]],far:[[51733,'ash',4.2,0],[4421,'aspen',3.9,3]]},mats={};
- try{for(const set in specs){ez[set]=[];for(const [seed,leaf,H,p] of specs[set]){const t=new EZ.Tree();t.options.copy(ezOptions(seed,leaf,set==='far'));t.generate();
-  const img=t.leavesMesh.material.map.image;await new Promise(r=>img.complete?r():img.addEventListener('load',r));mats[leaf]=mats[leaf]||ezMaterial(t.leavesMesh.material.map);ez[set].push(ezGeometry(t,seed,mats[leaf],H,ezLeaf[p]))}}}
+async function ezTrees(){const EZ=window['@dgreenheck/ez-tree'];if(!EZ)return;const specs={near:[[35729,'ash',3.8],[13977,'aspen',4.3],[26867,'ash',4.0],[8123,'oak',3.6]],far:[[51733,'ash',4.2],[4421,'aspen',3.9]]},mats={};
+ try{for(const set in specs){ez[set]=[];for(const [i,[seed,leaf,H]] of specs[set].entries()){const t=new EZ.Tree();t.options.copy(ezOptions(seed,leaf,set==='far'));t.generate();
+  const img=t.leavesMesh.material.map.image;await new Promise(r=>img.complete?r():img.addEventListener('load',r));mats[leaf]=mats[leaf]||ezMaterial(t.leavesMesh.material.map);ez[set].push(ezGeometry(t,seed,mats[leaf],H,ezS.pal[set==='far'?ezS.far[i]:i]))}}}
  catch(e){console.warn('ez-tree unavailable, using procedural trees',e);delete ez.near;delete ez.far}}
 // A kit prop fitted to the footprint the voxel box had, so every call site keeps its size and tint. Variant comes from position, not rng, so the world layout is unchanged.
 function prop(set,x,y,z,sx,sy,sz,h,ry=0,cat='rock'){const list=kit[set];if(!list)return box(x,y,z,sx,sy,sz,h,cat,0,ry);
