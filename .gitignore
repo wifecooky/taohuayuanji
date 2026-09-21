@@ -1,0 +1,4 @@
+.gstack/
+.playwright-cli/
+output/
+.DS_Store
