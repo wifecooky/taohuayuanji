@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#dfe4d8">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2714%27 fill=%27%23425a4b%27/%3E%3Ctext x=%2732%27 y=%2745%27 text-anchor=%27middle%27 font-size=%2742%27 fill=%27%23f7f3e6%27%3E桃%3C/text%3E%3C/svg%3E">
 <meta name="description" content="沿溪、舍舟、入山，在一片真正连续的三维田园中，走进陶渊明的《桃花源记》。">
 <title>桃源 · 豁然开朗｜循文入境</title>
 <style>
@@ -43,6 +44,42 @@
 @media(max-height:480px) and (min-width:761px){.story-reader{bottom:8px;width:min(730px,calc(100% - 28px))}.story-text-area{max-height:19vh;padding:6px 15px}.story-original{font-size:15px;line-height:1.6}.story-gloss{font-size:9px;line-height:1.5}.story-action-strip{display:none}.story-footnotes{display:none}.story-reader-top{padding-top:7px}.story-controls{padding:5px 13px 6px}.storying .header .eyebrow{display:none}.story-top{top:16px}.storying .header{top:11px}}
 
 @media(max-width:760px){#story-photo{display:flex}#story-sound{display:none}}
+/* Responsive reading controls and contrast follow the existing paper palette. */
+input:focus-visible,select:focus-visible,#view:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.hidden-ui .ui{visibility:hidden}
+.scene-note{background:var(--paper)}
+body.dusk .header:before{background:radial-gradient(ellipse at 35% 45%,rgba(34,53,52,.6),transparent 72%)}
+.story-top button{color:#35473f}.story-top .sound-on{color:#fff5e2}
+.story-text-area{overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#9aa88b transparent}
+@media(max-width:760px){
+ .bottom{bottom:calc(16px + env(safe-area-inset-bottom))}
+ .scene-note{bottom:calc(191px + env(safe-area-inset-bottom))}
+ .story-reader{bottom:calc(10px + env(safe-area-inset-bottom))}
+ .story-controls{display:grid;grid-template-columns:auto 36px auto 1fr auto auto;gap:6px 10px;padding:8px 12px 10px}
+ .story-range-wrap{grid-row:1;grid-column:1/-1;min-width:0;gap:4px}
+ .story-range{height:22px}.timeline-meta{font-size:10px;gap:12px;line-height:1.4}
+ .story-controls .nav-chapter{min-height:36px;font-size:11px}
+ .story-controls .play-toggle{width:36px;height:36px}
+ .story-controls .mode-toggle{grid-column:5;min-height:34px;font-size:10px;padding:6px 8px}
+ .story-controls select{grid-column:6;min-height:34px;font-size:11px;padding:6px}
+ .story-gloss{font-size:12px;line-height:1.8}.story-action-strip span{font-size:10px}
+ .story-top{flex-wrap:wrap}.story-top button,.story-top .mini{min-height:34px}
+ .storying .toast{top:140px}.reader-switch button{min-height:30px}
+}
+@media(max-width:350px){
+ .story-reader-top{flex-wrap:wrap;row-gap:3px}.reader-switch{margin-left:auto}
+ .story-controls{column-gap:6px}.story-top{gap:4px}
+}
+@media(max-height:480px){
+ .storying .header{display:none}.story-top{top:10px;left:13px;right:13px;justify-content:flex-end}
+ .story-reader{bottom:calc(6px + env(safe-area-inset-bottom));max-height:calc(100dvh - 65px)}
+ .story-text-area{max-height:22dvh}.story-footnotes,.story-action-strip{display:none}
+ .storying .toast{top:58px}.scene-note{display:none}
+}
+.storying.top-controls-hidden .story-top{display:none!important}
+.story-top-restore{position:fixed;right:32px;top:26px;z-index:8;width:36px;height:36px;border-radius:50%;font-size:20px;line-height:1;color:#35473f}
+@media(max-width:760px){.story-top-restore{right:13px;top:88px}}
+@media(max-height:480px){.story-top-restore{top:10px;right:13px}}
 </style>
 </head>
 <body>
@@ -76,6 +113,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
  No network resources, images or models. -->
+<button id="story-top-restore" class="story-top-restore story-layer ui glass" aria-label="显示顶部按钮" aria-controls="story-top" aria-expanded="false" hidden>···</button>
 <div class="story-top story-layer ui" id="story-top">
 <button id="story-restart" class="glass mini" aria-label="重新开始" title="重新开始">↺</button><button id="story-center" class="glass mini" aria-label="回正镜头" title="回正镜头 · R">⊙</button>
  <button class="glass" id="story-outline" aria-controls="reading-drawer" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h10"/></svg>全篇 / 手札</button>
@@ -257,19 +295,22 @@ const peachTrees=[], blossomSources=[];
 let botanicalGeometry, bloomHiMat, bloomLoMat, barkMaterial, leafMaterial;
 let fallingPetals, fallingData=[], streamPetals, streamPetalData=[], flowerGround;
 const botanicalState={time:0,lastLOD:-1,flowers:0,twigs:0};
-function geometryBuffer(){return {p:[],c:[]}}
-function triangle(g,a,b,c,col){g.p.push(...a,...b,...c);if(Array.isArray(col)){g.c.push(...col[0].toArray(),...col[1].toArray(),...col[2].toArray())}else for(let i=0;i<3;i++)g.c.push(...color(col).toArray())}
-function geometryFinish(g){const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(g.p,3));geo.setAttribute('color',new T.Float32BufferAttribute(g.c,3));geo.computeVertexNormals();geo.computeBoundingSphere();return geo}
-function tubeInto(g,points,radii,cols,sides=7){
- const rings=[];
+function geometryBuffer(){return {p:[],c:[],n:[]}}
+function triangle(g,a,b,c,col,normals=null){
+ g.p.push(...a,...b,...c);if(Array.isArray(col)){g.c.push(...col[0].toArray(),...col[1].toArray(),...col[2].toArray())}else for(let i=0;i<3;i++)g.c.push(...color(col).toArray());
+ if(normals){for(const n of normals)g.n.push(...n)}else{const ux=b[0]-a[0],uy=b[1]-a[1],uz=b[2]-a[2],vx=c[0]-a[0],vy=c[1]-a[1],vz=c[2]-a[2],nx=uy*vz-uz*vy,ny=uz*vx-ux*vz,nz=ux*vy-uy*vx,len=Math.hypot(nx,ny,nz)||1;for(let i=0;i<3;i++)g.n.push(nx/len,ny/len,nz/len)}
+}
+function geometryFinish(g){const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(g.p,3));geo.setAttribute('color',new T.Float32BufferAttribute(g.c,3));geo.setAttribute('normal',new T.Float32BufferAttribute(g.n,3));geo.computeBoundingSphere();return geo}
+function tubeInto(g,points,radii,cols,sides=10){
+ const rings=[],normals=[];
  for(let i=0;i<points.length;i++){
   const tangent=V(...points[Math.min(i+1,points.length-1)]).sub(V(...points[Math.max(0,i-1)]));
   if(tangent.lengthSq()<1e-8)tangent.set(0,1,0);tangent.normalize();
-  const q=new T.Quaternion().setFromUnitVectors(V(0,1,0),tangent),ring=[];
-  for(let j=0;j<sides;j++){const a=j/sides*TAU,r=radii[i]*(1+.04*Math.sin(j*2.5+i));ring.push(V(Math.cos(a)*r,0,Math.sin(a)*r).applyQuaternion(q).add(V(...points[i])).toArray())}rings.push(ring);
+  const q=new T.Quaternion().setFromUnitVectors(V(0,1,0),tangent),ring=[],ns=[];
+  for(let j=0;j<sides;j++){const a=j/sides*TAU,r=radii[i]*(1+.035*Math.sin(j*2.5+i)),n=V(Math.cos(a),0,Math.sin(a)).applyQuaternion(q);ring.push(n.clone().multiplyScalar(r).add(V(...points[i])).toArray());ns.push(n.toArray())}rings.push(ring);normals.push(ns);
  }
  for(let i=1;i<rings.length;i++)for(let j=0;j<sides;j++){
-  let n=(j+1)%sides,col=cols[(j+i%2)%cols.length];triangle(g,rings[i-1][j],rings[i][j],rings[i-1][n],col);triangle(g,rings[i-1][n],rings[i][j],rings[i][n],col)
+  const n=(j+1)%sides,col=cols[j%cols.length];triangle(g,rings[i-1][j],rings[i][j],rings[i-1][n],col,[normals[i-1][j],normals[i][j],normals[i-1][n]]);triangle(g,rings[i-1][n],rings[i][j],rings[i][n],col,[normals[i-1][n],normals[i][j],normals[i][n]])
  }
 }
 function octaInto(g,p,s,col){const a=[[p[0]+s,p[1],p[2]],[p[0],p[1],p[2]+s],[p[0]-s,p[1],p[2]],[p[0],p[1],p[2]-s]];for(let i=0;i<4;i++){triangle(g,a[i],a[(i+1)%4],[p[0],p[1]+s,p[2]],col);triangle(g,a[(i+1)%4],a[i],[p[0],p[1]-s,p[2]],col)}}
@@ -368,11 +409,12 @@ function makeBlossomWeather(){
   fallingData.push({p,speed,drift,ground,cycle,phase:rand(0,cycle),spin:rand(0,TAU),s:rand(.065,.12),tree:source.tree});
  }
  const land=[];for(let r of peachRoots)for(let j=0;j<76;j++){let a=rand(0,TAU),rr=Math.sqrt(rng())*3.2*r[3],x=r[0]+Math.cos(a)*rr,z=r[2]+Math.sin(a)*rr,y=height(x,z);if(y<.10||z<88)continue;land.push({matrix:botanicalPose(V(x,y+.026,z),V(rand(-.12,.12),1,rand(-.12,.12)),rand(.045,.08),rand(0,TAU)),col:color(pick(['#ffffff','#ffd9e0','#f9d5d7']))})}
- flowerGround=botanicalInstances(botanicalGeometry.petal,pm,land);flowerGround.receiveShadow=true;scene.add(flowerGround);
+ flowerGround=botanicalInstances(botanicalGeometry.petal,pm.clone(),land);flowerGround.receiveShadow=true;scene.add(flowerGround);
  streamPetals=new T.InstancedMesh(botanicalGeometry.petal,pm,260);streamPetals.frustumCulled=false;streamPetals.renderOrder=5;scene.add(streamPetals);
  for(let i=0;i<260;i++)streamPetalData.push({z:rand(90,203),offset:rand(-1.85,1.85),p:rand(0,TAU),s:rand(.055,.085)});
  updateBlossomWeather(0);
 }
+let lastPetalTime=-1,lastPetalCount=-1,lastPetalReduced=null;
 function updateBlossomWeather(t){
  botanicalState.time=t;
  const gust=.38+.62*Math.pow(.5+.5*Math.sin(t*.39),3);
@@ -384,6 +426,9 @@ function updateBlossomWeather(t){
  }
  if(!fallingPetals)return;
  fallingPetals.visible=!reduced;fallingPetals.count=quality==='high'?fallingData.length:Math.min(380,fallingData.length);
+ // Camera-dependent tree detail still updates while paused; particle matrices do not.
+ if(t===lastPetalTime&&fallingPetals.count===lastPetalCount&&reduced===lastPetalReduced)return;
+ lastPetalTime=t;lastPetalCount=fallingPetals.count;lastPetalReduced=reduced;
  for(let i=0;i<fallingPetals.count;i++){
   const p=fallingData[i],age=(t+p.phase)%p.cycle,fallTime=p.cycle-1.7,f=clamp(age/fallTime,0,1),swirl=Math.sin(age*1.4+p.spin)*Math.sin(f*PI)*.31;
   const x=p.p.x+age*p.drift+swirl+.22*gust*Math.sin(age*.7+p.spin),z=p.p.z+age*.035+Math.cos(age*.85+p.spin)*Math.sin(f*PI)*.23;
@@ -396,10 +441,64 @@ function updateBlossomWeather(t){
  }streamPetals.instanceMatrix.needsUpdate=true;
 }
 
-function mulberry(x,z,s=1){let y=height(x,z);beam([x,y,z],[x+.13*s,y+2.35*s,z],.35*s,'#756549');let eps=[];for(let j=0;j<5;j++){let a=j*TAU/5+rand(-.3,.3),len=rand(1.0,1.8)*s,ep=[x+Math.cos(a)*len,y+rand(2.7,3.6)*s,z+Math.sin(a)*len];beam([x,y+1.75*s,z],ep,.13*s,'#756549');eps.push(ep)}eps.push([x,y+3.8*s,z]);for(let ep of eps)for(let j=0;j<20;j++){let dx=rand(-1,1),dy=rand(-.5,.6),dz=rand(-1,1);if(dx*dx+dy*dy*2+dz*dz>1)continue;let sz=rand(.30,.53)*s;box(ep[0]+dx*s,ep[1]+dy*s,ep[2]+dz*s,sz,sz*.70,sz,pick(['#648357','#719460','#89a164','#809b5f','#536f51']),'leaf',0,rand(-.2,.2))}}
-function bamboo(x,z,s=1){let base=height(x,z);for(let j=0;j<10;j++){let xx=x+rand(-1.7,1.7)*s,zz=z+rand(-1.6,1.6)*s,h=rand(4,7)*s,y=height(xx,zz);let bend=rand(-.30,.3);beam([xx,y,zz],[xx+bend,y+h,zz],.065*s,pick(['#718967','#819775','#597961']),'leaf');for(let n=.7;n<h;n+=.66*s){let t=n/h;box(xx+bend*t,y+n,zz,.08*s,.047*s,.08*s,'#b1b791','detail')}
- for(let k=0;k<6;k++){let a=rand(0,TAU),hh=y+h*rand(.52,.99),r=rand(.3,.8)*s,ep=[xx+Math.cos(a)*r,hh+.12,zz+Math.sin(a)*r];beam([xx,hh-.1,zz],ep,.02*s,'#809268','detail');for(let q=0;q<5;q++){let t=q/5,ex=mix(xx,ep[0],t),ez=mix(zz,ep[2],t);box(ex,hh+.06+rand(-.14,.14),ez,.07*s,.035*s,rand(.26,.58)*s,pick(['#557b61','#638d68','#91a77e','#7e9e73']),'leaf',rand(-.3,.3),a+rand(-.6,.6),rand(-.3,.3))}}}}
-function woodlandTree(x,z,s=1,far=false){let y=height(x,z);if(y<1.2||y>85)return;let trunk=rand(3.5,5)*s;beam([x,y,z],[x,y+trunk*.86,z],.22*s,'#5b6550',far?'distant':'solid');for(let l=0;l<4;l++){let yy=y+trunk*.53+l*.75*s,r=(2.0-l*.35)*s;for(let j=0;j<(far?5:10);j++){let a=rand(0,TAU),rr=rand(.05,r);box(x+Math.cos(a)*rr,yy+rand(-.23,.23)*s,z+Math.sin(a)*rr,rand(.7,1.3)*s,.55*s,rand(.6,1.2)*s,pick(['#597966','#65816b','#527664','#718b70','#78927a']),far?'distant':'leaf',0,rand(-.15,.15))}}}
+function mulberry(x,z,s=1){
+ const y=height(x,z),g=geometryBuffer(),bark=['#756549','#817055','#6f6049'],leaves=['#426449','#527b50','#668b54','#799b5e','#8eaa71'];
+ tubeInto(g,[[x,y-.1,z],[x+.05*s,y+1.2*s,z+.04*s],[x+.13*s,y+2.4*s,z]],[.23*s,.17*s,.10*s],bark,12);
+ for(let j=0;j<7;j++){const a=j*TAU/7+rand(-.25,.25),len=rand(1.0,1.8)*s,ep=[x+Math.cos(a)*len,y+rand(2.8,3.7)*s,z+Math.sin(a)*len];tubeInto(g,[[x+.08*s,y+1.6*s,z],[mix(x,ep[0],.55),y+2.5*s,mix(z,ep[2],.55)],ep],[.10*s,.063*s,.018*s],bark,9);clumpInto(g,ep,rand(.78,1.05)*s,leaves,2)}
+ clumpInto(g,[x+.1*s,y+3.9*s,z],.98*s,leaves,2);
+ mulberryMat=mulberryMat||new T.MeshStandardMaterial({vertexColors:true,roughness:.9,side:T.DoubleSide});const m=mesh(geometryFinish(g),mulberryMat);m.name='桑树 · 自然分枝与层叠叶簇';
+}
+function leafInto(g,center,direction,length,width,col){
+ const d=direction.clone().normalize(),side=V(-d.z,0,d.x).normalize(),base=V(...center),middle=base.clone().addScaledVector(d,length*.48).add(V(0,length*.055,0)),c=color(col);
+ const outline=[[0,0],[.2,.66],[.46,1],[.73,.75],[1,0],[.73,-.75],[.46,-1],[.2,-.66]].map(([u,v])=>base.clone().addScaledVector(d,length*u).addScaledVector(side,width*v).add(V(0,-length*.10*u*u,0)));
+ for(let i=0;i<outline.length;i++){const next=(i+1)%outline.length;triangle(g,outline[i].toArray(),outline[next].toArray(),middle.toArray(),[c,c,c.clone().multiplyScalar(i<4?1.04:.95)])}
+}
+function bamboo(x,z,s=1){
+ const g=geometryBuffer();for(let j=0;j<10;j++){const xx=x+rand(-1.7,1.7)*s,zz=z+rand(-1.6,1.6)*s,h=rand(4,7)*s,y=height(xx,zz),bend=rand(-.3,.3);
+ tubeInto(g,[[xx,y,zz],[xx+bend*.45,y+h*.55,zz],[xx+bend,y+h,zz]],[.042*s,.032*s,.018*s],['#718967','#829b6d','#65815a'],8);
+ for(let k=0;k<7;k++){const a=rand(0,TAU),hh=y+h*rand(.48,.98),r=rand(.4,.95)*s,base=[xx+bend*(hh-y)/h,hh,zz],ep=[base[0]+Math.cos(a)*r,hh+.16*s,zz+Math.sin(a)*r];tubeInto(g,[base,ep],[.014*s,.004*s],['#7a9263'],5);
+ for(let q=0;q<7;q++){const t=q/7;for(const side of [-1,1]){const angle=a+side*.65;leafInto(g,[mix(base[0],ep[0],t),hh+.16*s*t,mix(zz,ep[2],t)],V(Math.cos(angle),-.18,Math.sin(angle)),rand(.28,.55)*s,.035*s,pick(['#527653','#6e915f','#8ea977']))}}
+ }}const m=mesh(geometryFinish(g),new T.MeshStandardMaterial({vertexColors:true,roughness:.9,side:T.DoubleSide}));m.name='竹 · 弧形竹竿与披针叶';
+}
+
+// Woodland variants share smooth crowns and small leaf sprays; distant trees keep fewer polygons.
+const woodlandItems=new Map();let woodlandVariants=null,mulberryMat=null;
+const crownSources=new Map();
+function clumpInto(g,p,r,cols,detail){
+ const phase=rand(0,TAU),tint=y=>{const t=clamp((y*.5+.5)*(cols.length-1),0,cols.length-1),i=Math.floor(t);return color(cols[i]).clone().lerp(color(cols[Math.min(i+1,cols.length-1)]),t-i)};
+ function volume(center,size,level){
+  if(!crownSources.has(level))crownSources.set(level,new T.IcosahedronGeometry(1,level));const src=crownSources.get(level).attributes.position.array;
+  for(let i=0;i<src.length;i+=9){const verts=[],ns=[],cs=[];for(let k=0;k<3;k++){const x=src[i+k*3],y=src[i+k*3+1],z=src[i+k*3+2],j=size*(1+.055*Math.sin(x*5+phase)*Math.sin(y*4+z*3));verts.push([center[0]+x*j,center[1]+y*j*.8,center[2]+z*j]);ns.push(V(x,y/.8,z).normalize().toArray());cs.push(tint(clamp((center[1]-p[1]+y*size)/r,-1,1)))}triangle(g,...verts,cs,ns)}
+ }
+ if(detail===0){volume(p,r,1);return}
+ if(detail===1){
+  // Interlocking small boughs create a broken canopy outline instead of a solid ball.
+  volume(p,r*.60,1);
+  for(let i=0;i<10;i++){const y=1-2*(i+.5)/10,a=i*2.399963+phase,rr=Math.sqrt(1-y*y);volume([p[0]+Math.cos(a)*rr*r*.60,p[1]+y*r*.46,p[2]+Math.sin(a)*rr*r*.60],r*(.37+.05*Math.sin(a)),0)}
+  return;
+ }
+ // Nearby mulberries are made of individual overlapping leaves, with light between them.
+ const count=190;
+ for(let i=0;i<count;i++){const y=1-2*(i+.5)/count,a=i*2.399963+phase,ring=Math.sqrt(1-y*y),rad=r*(.65+.30*hash(i,phase)),dir=V(Math.cos(a)*ring,y,Math.sin(a)*ring),center=[p[0]+dir.x*rad,p[1]+dir.y*rad*.76,p[2]+dir.z*rad],length=r*(.34+.12*hash(i+7,phase));leafInto(g,center,V(Math.cos(a+.65),.14+.16*y,Math.sin(a+.65)),length,length*.38,cols[Math.min(cols.length-1,Math.floor((y*.5+.5)*cols.length))])}
+}
+function woodlandVariant(far){
+ const g=geometryBuffer(),bark=['#5b6550','#66705a','#4f5946'],leaf=['#46655a','#527664','#597966','#65816b','#718b70','#78927a','#86a085'],lean=rand(-.25,.25),rot=rand(0,TAU),h=rand(3.4,4.4),boughs=far?4:7,clumps=[];
+ tubeInto(g,[[0,-.3,0],[lean*.3,h*.35,.03],[lean,h*.7,.06],[lean*1.2,h,.04]],[.28,.22,.15,.07],bark,far?7:12);
+ for(let i=0;i<boughs;i++){const a=rot+i*TAU/boughs+rand(-.4,.4),len=rand(.8,1.7),y0=h*rand(.55,.8),e=[lean+Math.cos(a)*len,y0+rand(.4,1.1),Math.sin(a)*len];
+  if(!far)tubeInto(g,[[lean*.8,y0,.05],[lean+Math.cos(a)*len*.5,y0+.3,Math.sin(a)*len*.5],e],[.10,.06,.02],bark,9);clumps.push([e,rand(.85,1.35)])}
+ clumps.push([[lean,h+.2,0],rand(1.2,1.7)]);for(const [p,r] of clumps)clumpInto(g,p,r,leaf,far?0:1);
+ return geometryFinish(g)
+}
+function woodlandTree(x,z,s=1,far=false){let y=height(x,z);if(y<1.2||y>85)return;if(!woodlandVariants)woodlandVariants={near:[0,1,2,3].map(()=>woodlandVariant(false)),far:[0,1].map(()=>woodlandVariant(true))};
+ const set=far?'far':'near',v=Math.floor(rand(0,woodlandVariants[set].length)),key=set+':'+v+':'+Math.floor(x/42)+':'+Math.floor(z/42);
+ dummy.position.set(x,y,z);dummy.rotation.set(0,rand(0,TAU),0);dummy.scale.set(s*rand(.9,1.1),s,s*rand(.9,1.1));dummy.updateMatrix();
+ let o=woodlandItems.get(key);if(!o){o={far,geo:woodlandVariants[set][v],items:[]};woodlandItems.set(key,o)}o.items.push({matrix:dummy.matrix.clone(),col:C('#ffffff').multiplyScalar(rand(.82,1.06))})}
+function flushWoodland(){
+ const woodMat=new T.MeshStandardMaterial({vertexColors:true,roughness:.9,side:T.DoubleSide});
+ for(const o of woodlandItems.values()){const m=botanicalInstances(o.geo,woodMat,o.items),r=o.geo.boundingSphere.radius*Math.max(...o.items.map(a=>a.matrix.getMaxScaleOnAxis()));
+  m.geometry.boundingBox.expandByScalar(r);m.geometry.boundingSphere=m.geometry.boundingBox.getBoundingSphere(new T.Sphere());m.castShadow=!o.far;m.receiveShadow=true;m.userData.cat=o.far?'distant':'leaf';m.name=o.far?'远山林木':'山林 · 柔和树冠与细叶';scene.add(m)}
+ woodlandItems.clear()
+}
 function vegetation(){
  for(let z=93;z<205;z+=5.6){for(let side of [-1,1]){let xx=streamX(z)+side*rand(5.7,8.8),zz=z+rand(-1.1,1.1);peach(xx,zz,rand(.88,1.32),z<160);if(rng()<.60)peach(xx+side*rand(3.5,5.5),zz+rand(-2,2),rand(.8,1.2),false)}}
  // Only a few peach boughs at the inner mouth, never an interior orchard.
@@ -411,6 +510,7 @@ function vegetation(){
  for(let cen of [[-64,-43],[-60,-17],[-58,10],[-31,-73],[2,-78],[39,-70],[65,-44],[66,-12]]){
   for(let n=0;n<38;n++){let a=rand(0,TAU),r=Math.sqrt(rng())*rand(7,12),xx=cen[0]+Math.cos(a)*r,zz=cen[1]+Math.sin(a)*r;if(height(xx,zz)>1.15)woodlandTree(xx,zz,rand(.7,1.25),false)}
  }
+ flushWoodland();
  for(let k=0;k<27;k++){let x=-52+rand(-3.5,3.5),z=31+rand(-3,3),h=height(x,z);box(x,h+rand(.15,.45),z,rand(.35,1.2),rand(.35,.8),rand(.4,1.2),pick(['#8f9e8c','#98a494','#7d9082']),'rock',0,rand(-.25,.25))}
  // Low, airy meadow; no autumn rice or flower carpet.
  for(let k=0;k<3200;k++){let x=rand(-65,70),z=rand(-78,53),y=height(x,z);if(y<.33||y>6||pondR(x,z)<1.15)continue;if(x>-44&&x<54&&z>-57&&z<34)continue;let h=rand(.13,.38);box(x,y+h/2,z,.05,h,.09,pick(['#95ab79','#839b6d','#a6b581','#789565']),'detail',rand(-.16,.16),rand(0,PI),.2)}
@@ -418,18 +518,55 @@ function vegetation(){
 }
 function mergedParts(parts){const pp=[],nn=[],cc=[],p=boxGeo.attributes.position,n=boxGeo.attributes.normal,m=new T.Matrix4(),nm=new T.Matrix3(),v=V(),normal=V(),obj=new T.Object3D();const indices=boxGeo.index.array;for(let part of parts){let[x,y,z,sx,sy,sz,h,rx=0,ry=0,rz=0]=part;obj.position.set(x,y,z);obj.rotation.set(rx,ry,rz);obj.scale.set(sx,sy,sz);obj.updateMatrix();m.copy(obj.matrix);nm.getNormalMatrix(m);let c=color(h);for(let ix of indices){v.fromBufferAttribute(p,ix).applyMatrix4(m);normal.fromBufferAttribute(n,ix).applyMatrix3(nm).normalize();pp.push(v.x,v.y,v.z);nn.push(normal.x,normal.y,normal.z);cc.push(c.r,c.g,c.b)}}let g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(pp,3));g.setAttribute('normal',new T.Float32BufferAttribute(nn,3));g.setAttribute('color',new T.Float32BufferAttribute(cc,3));return g}
 function partsMesh(parts,parent){let m=new T.Mesh(mergedParts(parts),new T.MeshStandardMaterial({vertexColors:true,roughness:1}));m.castShadow=true;m.receiveShadow=true;parent.add(m);return m}
-function person(x,z,role='chat',angle=0,s=1,clothes='#71847d'){const root=new T.Group(),floor=height(x,z);root.position.set(x,Math.max(.43,floor)+.10,z);root.rotation.y=angle;root.scale.setScalar(s);scene.add(root);const skin='#bda17d',hair='#494638',shoe='#665f4b';
- partsMesh([[-.13,.16,0,.14,.26,.16,shoe],[.13,.16,.05,.14,.26,.16,shoe],[-.13,.35,0,.15,.20,.15,'#a29476'],[.13,.35,.05,.15,.20,.15,'#a29476'],[0,.65,0,.50,.45,.34,clothes],[0,.85,0,.43,.30,.31,clothes]],root);
- const upper=new T.Group();upper.position.set(0,.83,0);root.add(upper);partsMesh([[0,.27,0,.41,.48,.28,clothes],[0,.035,0,.44,.055,.33,'#736651'],[0,.61,0,.13,.15,.13,skin],[0,.83,.005,.25,.29,.24,skin],[0,.97,-.025,.27,.09,.24,hair],[0,1.035,-.045,.115,.11,.105,hair],[.008,.85,.136,.095,.07,.03,skin]],upper);
- const arms=[];for(let side of [-1,1]){let arm=new T.Group();arm.position.set(side*.26,.42,0);upper.add(arm);partsMesh([[0,-.16,0,.16,.33,.20,clothes],[0,-.39,.01,.10,.14,.105,skin]],arm);arm.rotation.z=side*.15;arms.push(arm)}
- let tool=null;if(role==='farm'){upper.rotation.x=.5;arms.forEach(a=>a.rotation.x=-1.00);tool=new T.Group();root.add(tool);partsMesh([[.18,.60,.55,.045,1.32,.048,'#92774e',.44],[.18,.03,.82,.40,.06,.12,'#706b52']],tool);const hat= new T.Mesh(new T.ConeGeometry(.40,.19,9),mat('#b5a070'));hat.position.set(0,1.07,0);upper.add(hat)}
- if(role==='water'){root.position.y=.67;arms[0].rotation.x=-.60;arms[1].rotation.x=-.30;partsMesh([[-.28,.25,.23,.25,.28,.23,'#8c805f'],[-.40,.44,.23,.025,.17,.025,'#ad9a74'],[-.16,.44,.23,.025,.17,.025,'#ad9a74'],[-.28,.52,.23,.25,.025,.03,'#ad9a74']],root)}
- if(role==='sit'){root.position.y=.40;upper.position.y=.54;root.scale.y=.92;partsMesh([[-.13,.25,.30,.15,.15,.43,clothes],[.13,.25,.30,.15,.15,.43,clothes]],root);arms.forEach(a=>a.rotation.x=-.7)}
- if(role==='child'){root.scale.setScalar(s*.68);upper.children[0].geometry.dispose();upper.remove(upper.children[0]);partsMesh([[0,.26,0,.40,.46,.28,clothes],[0,.61,0,.13,.13,.13,skin],[0,.83,.0,.25,.28,.24,skin],[0,.96,-.015,.25,.09,.24,hair]],upper)}
- partsMesh([[-.055,.848,.128,.026,.018,.014,'#69583f'],[.055,.848,.128,.026,.018,.014,'#69583f'],[0,.764,.129,.050,.010,.009,'#957551'],[-.133,.833,0,.025,.062,.055,skin],[.133,.833,0,.025,.062,.055,skin]],upper);animated.push({type:'human',root,upper,arms,tool,role,x,z,phase:rand(0,TAU)});return root}
+const geoBox=()=>new T.BoxGeometry(1,1,1),geoCyl=(rt,rb,h,n=20)=>new T.CylinderGeometry(rt,rb,h,n),geoSph=r=>new T.SphereGeometry(r,20,14);
+function robeGeo(rt,rb,h){
+ const g=new T.CylinderGeometry(rt,rb,h,32,8),p=g.attributes.position;
+ for(let i=0;i<p.count;i++){const x=p.getX(i),y=p.getY(i),z=p.getZ(i),a=Math.atan2(z,x),u=clamp(.5-y/h,0,1),fold=1+(.012+.038*u)*Math.cos(a*12)+.016*Math.cos(a*5+u);p.setXYZ(i,x*fold,y,z*fold)}g.computeVertexNormals();return g;
+}
+function collarGeo(points,width){return new T.TubeGeometry(new T.CatmullRomCurve3(points.map(p=>V(...p))),12,width,6,false)}
+let characterMaterial;
+function shapesMesh(parts,parent){const pp=[],cc=[],nn=[],m=new T.Matrix4(),nm=new T.Matrix3(),obj=new T.Object3D(),v=V(),normal=V();
+ for(let [geo,x,y,z,h,sx=1,sy=1,sz=1,rx=0,ry=0,rz=0] of parts){let g=geo.index?geo.toNonIndexed():geo;obj.position.set(x,y,z);obj.rotation.set(rx,ry,rz);obj.scale.set(sx,sy,sz);obj.updateMatrix();m.copy(obj.matrix);nm.getNormalMatrix(m);let p=g.attributes.position,n=g.attributes.normal,c=color(h);for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i).applyMatrix4(m);normal.fromBufferAttribute(n,i).applyMatrix3(nm).normalize();pp.push(v.x,v.y,v.z);nn.push(normal.x,normal.y,normal.z);cc.push(c.r,c.g,c.b)}if(g!==geo)g.dispose();geo.dispose()}
+ const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(pp,3));g.setAttribute('color',new T.Float32BufferAttribute(cc,3));g.setAttribute('normal',new T.Float32BufferAttribute(nn,3));g.computeBoundingSphere();
+ characterMaterial=characterMaterial||new T.MeshStandardMaterial({vertexColors:true,roughness:.88});const mesh=new T.Mesh(g,characterMaterial);mesh.castShadow=true;mesh.receiveShadow=true;parent.add(mesh);return mesh;
+}
+
+// Eastern-Jin villagers: crossed-collar robe (交领), wide sleeves, cloth belt, topknot / headcloth / hanging locks for children (垂髫).
+// Contract kept for story code: root origin at the feet, `upper` pivots at the hips, `arms` pivot at the shoulders.
+function person(x,z,role='chat',angle=0,s=1,clothes='#71847d',opts={}){const root=new T.Group(),floor=height(x,z);root.position.set(x,Math.max(.43,floor)+.02,z);root.rotation.y=angle;root.scale.setScalar(s);scene.add(root);
+ root.name='村人 · '+role;root.userData.kind='villager';
+ const kid=role==='child',work=opts.work??(role==='farm'||role==='water'),female=!!opts.female,skin='#c9a98a',hair=opts.hair||'#2f2a24',inner='#e8dfc8',belt='#4a3f33',trouser=work?'#4d4a42':'#5a5548',shoe='#3b352e';
+ const HIP=kid?.66:.95,TH=kid?.30:.42,SH=kid?.28:.42,TO=kid?.36:.50,HD=kid?.58:.72;
+ const legs=[];for(let side of [-1,1]){const leg=new T.Group();leg.position.set(side*.10,HIP,0);root.add(leg);shapesMesh([[geoCyl(.085,.072,TH),0,-TH/2,0,trouser,1,1,.9],[geoSph(.074),0,-TH,0,trouser,1,1,.9]],leg);const knee=new T.Group();knee.position.set(0,-TH,0);leg.add(knee);shapesMesh([[geoCyl(.071,.054,SH),0,-SH/2,0,trouser,1,1,.9],[geoSph(.10),0,-SH-.035,.045,shoe,.76,.50,1.5]],knee);leg.knee=knee;legs.push(leg)}
+ if(role==='sit')shapesMesh([[geoSph(1),0,HIP-.06,.19,clothes,.28,.12,.32],[robeGeo(.24,.27,.35),0,HIP-.29,.40,clothes,1,1,.5]],root);
+ else{const h=work||kid?.40:HIP-.14,rb=work||kid?.31:.38;shapesMesh([[robeGeo(.235,rb,h),0,HIP-h/2,0,clothes,1,1,.8]],root)}
+ const upper=new T.Group();upper.position.set(0,HIP,0);root.add(upper);
+ const face=[
+  [geoSph(.011),-.051,HD+.018,.121,'#42362b',1,.63,.55],[geoSph(.011),.051,HD+.018,.121,'#42362b',1,.63,.55],
+  [geoSph(.027),-.052,HD+.045,.119,hair,1,.17,.16,0,0,-.07],[geoSph(.027),.052,HD+.045,.119,hair,1,.17,.16,0,0,.07],
+  [geoSph(.022),0,HD-.016,.132,skin,.68,1.3,.78],[geoSph(.025),0,HD-.066,.119,'#a17764',1,.17,.2],
+  [geoSph(.027),-.126,HD-.006,-.002,skin,.52,1,.7],[geoSph(.027),.126,HD-.006,-.002,skin,.52,1,.7]
+ ];
+ const hairParts=[[new T.SphereGeometry(.153,24,12,0,TAU,0,1.51),0,HD+.016,-.014,hair,.93,1,.97],[geoSph(.14),0,HD-.005,-.08,hair,.93,1,.49]];
+ if(kid)hairParts.push([geoSph(.10),0,HD+.09,.068,hair,1.18,.58,.56],[geoSph(.07),-.126,HD-.035,-.024,hair,.38,1.7,.55],[geoSph(.07),.126,HD-.035,-.024,hair,.38,1.7,.55]);
+ else if(female)hairParts.push([geoSph(.076),0,HD+.14,-.082,hair,1.22,.88,1],[geoSph(.052),0,HD+.035,-.151,hair],[geoCyl(.007,.007,.23,8),0,HD+.16,-.085,'#a28c62',1,1,1,0,0,1.4]);
+ else if(work)hairParts.push([geoCyl(.145,.145,.043),0,HD+.098,-.014,'#655d50',1,1,.94],[geoSph(.063),0,HD+.192,-.039,hair,.85,1,.85]);
+ else hairParts.push([geoSph(.07),0,HD+.194,-.035,hair,.78,1,.88],[geoCyl(.008,.008,.23,8),0,HD+.205,-.04,'#b08c5c',1,1,1,0,0,PI/2]);
+ if(opts.beard)hairParts.push([geoSph(.075),0,HD-.134,.084,opts.beard,.78,1.4,.36]);
+ const collar=[[-.115,TO+.005,.10],[0,TO-.11,.193],[.11,TO-.29,.195]],under=[[.12,TO+.002,.105],[.049,TO-.094,.182],[.005,TO-.13,.192]];
+ shapesMesh([[robeGeo(.23,.245,TO),0,TO/2,0,clothes,1,1,.78],[geoSph(.105),-.165,TO-.08,0,clothes,1,.78,1.32],[geoSph(.105),.165,TO-.08,0,clothes,1,.78,1.32],[geoCyl(.247,.247,.055,32),0,.035,0,belt,1,1,.8],[collarGeo(collar,.016),0,0,0,inner],[collarGeo(under,.013),0,0,0,inner],[geoCyl(.06,.07,.13),0,TO+.035,0,skin],[geoSph(.15),0,HD,0,skin,.86,1.08,.88],...face,...hairParts],upper);
+ const arms=[],wide=!work&&!kid;for(let side of [-1,1]){const arm=new T.Group();arm.position.set(side*.25,TO-.035,0);upper.add(arm);const len=wide?.42:.38,cuff=wide?.14:.082;
+ shapesMesh([[robeGeo(.087,cuff,len),0,-len/2,0,clothes],[geoCyl(cuff,cuff,.027,24),0,-len-.01,0,inner],[geoSph(.055),0,-len-.065,0,skin,.76,1,.57],[geoSph(.022),-side*.033,-len-.052,.025,skin,.7,1,.75]],arm);arm.rotation.z=side*.12;arms.push(arm)}
+
+ let tool=null;
+ if(role==='farm'){upper.rotation.x=.5;arms.forEach(a=>a.rotation.x=-1.0);legs[0].rotation.x=.35;legs[1].rotation.x=-.30;tool=new T.Group();root.add(tool);partsMesh([[.18,.60,.55,.045,1.32,.048,'#92774e',.44],[.18,.03,.82,.40,.06,.12,'#706b52']],tool);const hat=new T.Mesh(new T.ConeGeometry(.40,.19,32),mat('#b5a070'));hat.position.set(0,HD+.24,0);upper.add(hat)}
+ if(role==='water'){legs.forEach(l=>{l.rotation.x=-1.6;l.knee.rotation.x=1.97});root.position.y-=.57;upper.rotation.x=.55;arms[0].rotation.x=-.85;arms[1].rotation.x=-.65;const props=new T.Group();props.position.y=.57;root.add(props);partsMesh([[-.30,.14,.42,.30,.16,.28,'#8c805f'],[-.30,.24,.42,.26,.03,.24,'#b9c4c2'],[.34,.11,.40,.44,.04,.30,'#c6b89a'],[.34,.15,.40,.06,.04,.30,'#7a6a52']],props)}
+ if(role==='sit'){root.position.y=-.13;legs.forEach(l=>{l.rotation.x=-PI/2;l.knee.rotation.x=PI/2});arms.forEach(a=>a.rotation.x=-.7)}
+ if(kid)root.scale.setScalar(s*.72);
+ animated.push({type:'human',root,upper,arms,legs,tool,role,x,z,y:root.position.y,phase:rand(0,TAU)});return root}
 function animal(x,z,type='hen',angle=0){const g=new T.Group();g.position.set(x,height(x,z)+.10,z);g.rotation.y=angle;scene.add(g);let parts;if(type==='dog'){parts=[[0,.47,0,.38,.37,.77,'#a99b7b'],[0,.61,.44,.28,.33,.30,'#a99b7b'],[0,.55,.61,.20,.15,.21,'#b4a282'],[-.13,.77,.43,.12,.20,.14,'#746c55',0,0,-.20],[.13,.77,.43,.12,.20,.14,'#746c55',0,0,.20],[0,.62,-.47,.13,.44,.12,'#a99b7b',-.65],[-.14,.21,.28,.12,.37,.12,'#897e61'],[.14,.21,.28,.12,.37,.12,'#897e61'],[-.14,.21,-.28,.12,.37,.12,'#897e61'],[.14,.21,-.28,.12,.37,.12,'#897e61']]}else{parts=[[0,.32,0,.29,.28,.43,type==='hen'?'#ded2ac':'#aa8a61'],[0,.50,.19,.17,.25,.16,'#cfb789'],[0,.66,.20,.06,.11,.12,'#9d5c48'],[0,.51,.31,.10,.055,.12,'#bba167'],[0,.41,-.25,.20,.31,.10,'#796f55',-.50],[-.09,.095,0,.026,.20,.031,'#b6975e'],[.09,.095,0,.026,.20,.031,'#b6975e']]}
  const body=partsMesh(parts,g);animated.push({type,root:g,body,x,z,phase:rand(0,TAU)});return g}
-function life(){person(-25,-16,'farm',.4,1,'#718074');person(-3,3,'farm',-.3,1,'#8d8767');person(21,-10,'chat',1.1,1,'#84938a');person(22.7,-10.7,'chat',-1.1,.95,'#a3957c');person(-12.7,9.1,'water',-1.9,1,'#7d938c');person(32.1,-3.8,'sit',.25,1,'#898571');person(21.7,-5.1,'water',-1,.97,'#9c967b');person(25,3,'child',-.6,1,'#b09277');person(26.1,4,'child',1.1,.95,'#87977e');person(45,-30,'chat',2.7,1,'#a99b7f');person(streamX(96)-3.7,96,'chat',-.25,.97,'#818475');
+function life(){person(-25,-16,'farm',.4,1,'#5b6b8a');person(-3,3,'farm',-.3,1,'#a67b4e');person(21,-10,'chat',1.1,1,'#4c5f7d');person(22.7,-10.7,'chat',-1.1,.95,'#c7b48f',{female:true});person(-12.7,9.1,'water',-1.9,1,'#9a7d8a',{female:true});person(32.1,-3.8,'sit',.25,1,'#7d5a40',{hair:'#c9c0a4',beard:'#b7b0a0'});person(21.7,-5.1,'water',-1,.97,'#5d6f8f',{female:true});person(25,3,'child',-.6,1,'#c26d5a');person(26.1,4,'child',1.1,.95,'#d9c9a2');person(45,-30,'chat',2.7,1,'#8a6b52');person(streamX(96)-3.7,96,'chat',-.25,.97,'#6c7c8f',{work:true});
  animal(29,1,'dog',1.5);for(let p of [[35,-4],[36,-3],[37,-4.8],[16,-4.7],[15,-5.5]])animal(...p,'hen',rand(0,TAU));
  // A low bench and some everyday farming tools.
  box(32.3,.67,-4.1,2.4,.16,.53,'#8e7f60');for(let x of [31.4,33.2])box(x,.42,-4.1,.16,.4,.40,'#6e634f');beam([40.8,.55,-29.9],[40.4,2.10,-30.1],.045,'#9c855b','detail');box(40.8,.58,-29.9,.55,.08,.12,'#82755c','detail');
@@ -438,7 +575,7 @@ let petalMesh,petalData,smokeMesh,smokeData,floatPetals,floatPetalData=[];
 function atmosphereDetails(){makeBlossomWeather();
  const scount=smokeSources.length*9;smokeData=[];smokeMesh=new T.InstancedMesh(new T.IcosahedronGeometry(1,1),new T.MeshBasicMaterial({color:C('#d4d6c4'),transparent:true,opacity:.045,depthWrite:false}),scount);smokeMesh.frustumCulled=false;scene.add(smokeMesh);for(let i=0;i<scount;i++)smokeData.push({root:smokeSources[Math.floor(i/9)],offset:(i%9)/9,phase:rand(0,TAU)});
 }
-function animateWorld(t){for(let a of animated){let v=t*.55+a.phase;if(a.type==='human'){if(a.role==='farm'){a.upper.rotation.x=.48+.13*Math.sin(v);a.arms[0].rotation.x=-1.0+.14*Math.sin(v+.5);a.arms[1].rotation.x=-.9+.10*Math.sin(v+.8);a.tool.rotation.x=.04*Math.sin(v)}else if(a.role==='child'){a.root.position.x=a.x+.7*Math.sin(v*.72);a.root.position.z=a.z+.55*Math.cos(v*.72);a.root.rotation.y=v*.72+PI/2;a.arms[0].rotation.x=Math.sin(v*5)*.19;a.arms[1].rotation.x=-Math.sin(v*5)*.19}else if(a.role==='water'){a.upper.rotation.x=.13+.11*Math.sin(v*.65);a.arms[0].rotation.x=-.60+.2*Math.sin(v*.65)}else if(a.role==='chat'){a.upper.rotation.y=.045*Math.sin(v*.7);a.arms[1].rotation.x=-.15-.14*Math.max(0,Math.sin(v*.8))}}else if(a.type==='hen'){a.body.rotation.x=Math.max(0,Math.sin(v*2))*.30;a.root.position.x=a.x+Math.sin(v*.20)*.24;a.root.position.z=a.z+Math.sin(v*.24)*.16}else if(a.type==='dog'){a.root.rotation.y=1.5+.17*Math.sin(v*.4);a.root.position.x=a.x+.3*Math.sin(v*.2)}}
+function animateWorld(t){for(let a of animated){let v=t*.55+a.phase;if(a.type==='human'){if(a.role==='farm'){a.upper.rotation.x=.48+.13*Math.sin(v);a.arms[0].rotation.x=-1.0+.14*Math.sin(v+.5);a.arms[1].rotation.x=-.9+.10*Math.sin(v+.8);a.tool.rotation.x=.04*Math.sin(v)}else if(a.role==='child'){const w=Math.sin(v*5);a.root.position.x=a.x+.7*Math.sin(v*.72);a.root.position.z=a.z+.55*Math.cos(v*.72);a.root.position.y=a.y+.025*Math.abs(w);a.root.rotation.y=v*.72+PI/2;a.arms[0].rotation.x=w*.45;a.arms[1].rotation.x=-w*.45;a.legs[0].rotation.x=-w*.55;a.legs[1].rotation.x=w*.55;a.legs[0].knee.rotation.x=Math.max(0,-w)*.7;a.legs[1].knee.rotation.x=Math.max(0,w)*.7}else if(a.role==='water'){a.upper.rotation.x=.55+.07*Math.sin(v*1.3);a.arms[0].rotation.x=-.85+.25*Math.sin(v*1.3);a.arms[1].rotation.x=-.65-.18*Math.sin(v*1.3+.4)}else if(a.role==='chat'){a.upper.rotation.y=.045*Math.sin(v*.7);a.upper.rotation.x=.02*Math.sin(v*.5);a.arms[1].rotation.x=-.15-.14*Math.max(0,Math.sin(v*.8));a.arms[0].rotation.x=-.05+.05*Math.sin(v*.6)}}else if(a.type==='hen'){a.body.rotation.x=Math.max(0,Math.sin(v*2))*.30;a.root.position.x=a.x+Math.sin(v*.20)*.24;a.root.position.z=a.z+Math.sin(v*.24)*.16}else if(a.type==='dog'){a.root.rotation.y=1.5+.17*Math.sin(v*.4);a.root.position.x=a.x+.3*Math.sin(v*.2)}}
  if(petalMesh){petalMesh.visible=!reduced;petalData.forEach((p,i)=>{let dur=(p.y-p.floor)/p.speed,tt=(t+p.p*2)%dur,y=p.y-tt*p.speed;dummy.position.set(p.x+Math.sin(tt*.35+p.p)*.8+tt*.015,y,p.z+Math.cos(tt*.22+p.p)*.4);dummy.rotation.set(tt*.45+p.p,tt*.32,p.p+tt*.4);dummy.scale.setScalar(.65+.35*Math.sin(p.p)**2);dummy.updateMatrix();petalMesh.setMatrixAt(i,dummy.matrix)});petalMesh.instanceMatrix.needsUpdate=true}
  if(smokeMesh){smokeMesh.visible=!reduced;smokeData.forEach((p,i)=>{let f=(p.offset+t*.020)%1,s=.21+f*.65;dummy.position.set(p.root.x+f*f*1.7,p.root.y+f*4.5,p.root.z+f*.7+Math.sin(f*4+p.phase)*.09);dummy.rotation.set(f*.4,p.phase,f*.15);dummy.scale.set(s,s*.72,s);dummy.updateMatrix();smokeMesh.setMatrixAt(i,dummy.matrix)});smokeMesh.instanceMatrix.needsUpdate=true}
  if(floatPetals){floatPetalData.forEach((p,i)=>{let z=91+(p.z-91+t*.055)%111,x=streamX(z)+p.offset+Math.sin(t*.10+p.r)*.07;dummy.position.set(x,.073,z);dummy.rotation.set(0,p.r+t*.035,0);dummy.scale.setScalar(.65+.35*Math.sin(p.r)**2);dummy.updateMatrix();floatPetals.setMatrixAt(i,dummy.matrix)});floatPetals.instanceMatrix.needsUpdate=true}if(waterMaterial)waterMaterial.uniforms.time.value=t;
@@ -465,10 +602,10 @@ function startTour(){if(story.active)stopStory(false);tour.distance=0;tour.elaps
 function stopTour(){if(!tour.active)return;tour.active=false;tour.paused=false;document.body.classList.remove('touring');$('guide-panel').classList.remove('on');let direction=V();camera.getWorldDirection(direction);manualLook={p:camera.position.clone(),yaw:Math.atan2(direction.x,direction.z),pitch:Math.asin(direction.y)};caption(camera.position.z>101?0:camera.position.z>49?1:2);reflectionDirty=true}
 function updateTour(dt){if(tour.paused)return;const z=camera.position.z;let speed=z<85&&z>49?1.25:1.65;tour.distance=Math.min(tour.total,tour.distance+dt*speed);let u=tour.distance/tour.total,pose=guidePose(u);camera.position.copy(pose.p);camera.lookAt(pose.t);$('guide-progress').style.width=(u*100).toFixed(1)+'%';let title,line;if(z>101){title='缘溪行';line='夹岸数百步，中无杂树，芳草鲜美，落英缤纷。'}else if(z>85){title='舍舟，从口入';line='将渔舟留在溪边，循山脚的一线微光而行。'}else if(z>50){title='初极狭，才通人';line='脚下有路，头顶有山。再向前走几步。'}else{title='豁然开朗';line='土地平旷，屋舍俨然。有良田、美池、桑竹之属。'}$('guide-title').textContent=title;$('guide-line').textContent=line;if(u>=1){stopTour();caption(2);toast('已入桃源。拖动环顾，或选择五境继续游览。')}}
 const themes={morning:{skyTop:'#96becf',skyBottom:'#e5e8d8',fog:'#bfd5cf',sun:'#fff1d6',hemi:'#e4eeec',ground:'#899580',intensity:2.85,ambient:.85,pos:[-90,118,85],near:116,far:345,exposure:1.04,night:0},day:{skyTop:'#a6cccf',skyBottom:'#dce8d7',fog:'#d0dfd0',sun:'#fff6df',hemi:'#e3f1eb',ground:'#8b9976',intensity:2.85,ambient:1.00,pos:[-45,175,10],near:130,far:340,exposure:1.04,night:0},dusk:{skyTop:'#5f8288',skyBottom:'#cdb89a',fog:'#91a69b',sun:'#f2c090',hemi:'#a7bfbb',ground:'#656f62',intensity:1.35,ambient:.83,pos:[-125,45,-58],near:100,far:285,exposure:1.01,night:1}};
-let weatherName='morning',weatherTarget,weatherChanging=false,reflectionDirty=true,lastReflectCamera=V(1e4,0,0);
+let weatherName='morning',weatherTarget,weatherChanging=false,reflectionDirty=true,lastReflectCamera=V(1e4,0,0),lastReflectRotation=new T.Quaternion();let lastReflectFov=0;
 function setWeather(name,instant=false){weatherName=name;let t=themes[name];weatherTarget={top:C(t.skyTop),bottom:C(t.skyBottom),fog:C(t.fog),sun:C(t.sun),hemi:C(t.hemi),ground:C(t.ground),...t};document.querySelectorAll('[data-weather]').forEach(b=>{let on=b.dataset.weather===name;b.classList.toggle('active',on);b.setAttribute('aria-pressed',on)});document.body.classList.toggle('dusk',name==='dusk');weatherChanging=true;updateWeather(instant?100:0);reflectionDirty=true;}
 let nightValue=0;function updateWeather(dt){let t=weatherTarget;if(!t)return;let k=clamp(dt*2,0,1);sky.material.uniforms.topColor.value.lerp(t.top,k);sky.material.uniforms.bottomColor.value.lerp(t.bottom,k);scene.fog.color.lerp(C(t.fog),k);sun.color.lerp(C(t.sun),k);hemi.color.lerp(C(t.hemi),k);hemi.groundColor.lerp(C(t.ground),k);sun.intensity=mix(sun.intensity,t.intensity,k);hemi.intensity=mix(hemi.intensity,t.ambient,k);sun.position.lerp(V(...t.pos),k);scene.fog.near=mix(scene.fog.near,t.near,k);scene.fog.far=mix(scene.fog.far,t.far,k);renderer.toneMappingExposure=mix(renderer.toneMappingExposure,t.exposure,k);nightValue=mix(nightValue,t.night,k);sky.material.uniforms.sunDirection.value.copy(sun.position).normalize();waterMaterial.uniforms.skyColor.value.copy(sky.material.uniforms.bottomColor.value);waterMaterial.uniforms.sunDir.value.copy(sun.position).normalize();waterMaterial.uniforms.sunColor.value.copy(sun.color);windows.forEach((w,i)=>w.material.opacity=(i%3===0?.7:0)*nightValue);lights.forEach(l=>l.intensity=nightValue*.9);if(sun.position.distanceTo(V(...t.pos))<.04){weatherChanging=false}if(frame%6===0){renderer.shadowMap.needsUpdate=true;reflectionDirty=true}}
-function setup(){scene=new T.Scene();scene.fog=new T.Fog(C('#d5dfce'),96,288);camera=new T.PerspectiveCamera(49,innerWidth/innerHeight,.15,1200);renderer=new T.WebGLRenderer({canvas:$('view'),antialias:true,alpha:false,preserveDrawingBuffer:true,powerPreference:mobile?'low-power':'high-performance'});renderer.outputEncoding=T.sRGBEncoding;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.06;renderer.physicallyCorrectLights=true;renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.shadowMap.autoUpdate=false;renderer.shadowMap.needsUpdate=true;renderer.setPixelRatio(Math.min(devicePixelRatio||1,quality==='high'?1.6:1));renderer.setSize(innerWidth,innerHeight);
+function setup(){scene=new T.Scene();scene.fog=new T.Fog(C('#d5dfce'),96,288);camera=new T.PerspectiveCamera(49,innerWidth/innerHeight,.15,1200);renderer=new T.WebGLRenderer({canvas:$('view'),antialias:true,alpha:false,preserveDrawingBuffer:false,powerPreference:mobile?'low-power':'high-performance'});renderer.outputEncoding=T.sRGBEncoding;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.06;renderer.physicallyCorrectLights=true;renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.shadowMap.autoUpdate=false;renderer.shadowMap.needsUpdate=true;renderer.setPixelRatio(Math.min(devicePixelRatio||1,quality==='high'?1.6:1));renderer.setSize(innerWidth,innerHeight);
  standard=new T.MeshStandardMaterial({roughness:1});foliageMat=new T.MeshStandardMaterial({roughness:.94});cropMat=new T.MeshStandardMaterial({roughness:1});stoneMat=new T.MeshStandardMaterial({roughness:1});
  hemi=new T.HemisphereLight(C('#e1e9d9'),C('#8a9070'),1.02);scene.add(hemi);sun=new T.DirectionalLight(C('#fff1d2'),2.25);sun.position.set(-90,145,85);sun.target.position.set(0,0,13);scene.add(sun,sun.target);sun.castShadow=true;sun.shadow.mapSize.set(quality==='high'?2048:1024,quality==='high'?2048:1024);Object.assign(sun.shadow.camera,{left:-107,right:107,top:125,bottom:-125,near:1,far:370});sun.shadow.normalBias=.075;sun.shadow.bias=-.00013;sun.shadow.radius=2.2;
  const sm=new T.ShaderMaterial({side:T.BackSide,depthWrite:false,uniforms:{topColor:{value:C('#afcdca')},bottomColor:{value:C('#e5e8d6')},sunDirection:{value:V(-90,145,85).normalize()}},vertexShader:'varying vec3 vWorld;void main(){vec4 world=modelMatrix*vec4(position,1.);vWorld=world.xyz;gl_Position=projectionMatrix*viewMatrix*world;}',fragmentShader:`varying vec3 vWorld;uniform vec3 topColor;uniform vec3 bottomColor;uniform vec3 sunDirection;void main(){vec3 d=normalize(vWorld-cameraPosition);float h=max(0.,d.y);vec3 c=mix(bottomColor,topColor,pow(h,.56));float glow=pow(max(0.,dot(d,sunDirection)),25.);c+=vec3(.095,.071,.039)*glow;gl_FragColor=vec4(c,1.);
@@ -479,9 +616,9 @@ function setup(){scene=new T.Scene();scene.fog=new T.Fog(C('#d5dfce'),96,288);ca
  $('view').addEventListener('webglcontextlost',e=>{e.preventDefault();ready=false;$('loading').style.display='flex';$('loading').style.opacity='1';fail(new Error('图形上下文已丢失；可关闭其他高负载页面后重新加载'))});
 }
 function setQuality(q){quality=q;$('quality').textContent=q==='high'?'高画质':'轻量模式';$('quality').setAttribute('aria-label',q==='high'?'当前高画质，点击切换轻量模式':'当前轻量模式，点击切换高画质');renderer.setPixelRatio(Math.min(devicePixelRatio||1,q==='high'?1.6:1));renderer.setSize(innerWidth,innerHeight);let size=q==='high'?2048:1024;if(sun.shadow.mapSize.x!==size){sun.shadow.mapSize.set(size,size);if(sun.shadow.map){sun.shadow.map.dispose();sun.shadow.map=null}}renderer.shadowMap.needsUpdate=true;reflectionDirty=true;}
-function renderReflection(){if(quality!=='high'){waterMaterial.uniforms.reflectAmount.value=0;return}if(!reflectionDirty&&frame%32!==0)return;if(camera.position.y<1.4)return;const viewTarget=V();camera.getWorldDirection(viewTarget);viewTarget.add(camera.position);reflectionCamera.copy(camera);reflectionCamera.position.copy(camera.position);reflectionCamera.position.y=.08-camera.position.y;viewTarget.y=.08-viewTarget.y;reflectionCamera.up.set(0,-1,0);reflectionCamera.lookAt(viewTarget);reflectionCamera.updateMatrixWorld();reflectionCamera.projectionMatrix.copy(camera.projectionMatrix);
+function renderReflection(){if(quality!=='high'){waterMaterial.uniforms.reflectAmount.value=0;return}if(!reflectionDirty&&(paused||story.active&&story.paused||frame%32!==0))return;if(camera.position.y<1.4)return;const viewTarget=V();camera.getWorldDirection(viewTarget);viewTarget.add(camera.position);reflectionCamera.copy(camera);reflectionCamera.position.copy(camera.position);reflectionCamera.position.y=.08-camera.position.y;viewTarget.y=.08-viewTarget.y;reflectionCamera.up.set(0,-1,0);reflectionCamera.lookAt(viewTarget);reflectionCamera.updateMatrixWorld();reflectionCamera.projectionMatrix.copy(camera.projectionMatrix);
  const tm=waterMaterial.uniforms.textureMatrix.value;tm.set(.5,0,0,.5,0,.5,0,.5,0,0,.5,.5,0,0,0,1);tm.multiply(reflectionCamera.projectionMatrix).multiply(reflectionCamera.matrixWorldInverse);
- const old=renderer.getRenderTarget(),clip=renderer.clippingPlanes;waterMeshes.forEach(w=>w.visible=false);if(petalMesh)petalMesh.visible=false;if(smokeMesh)smokeMesh.visible=false;renderer.clippingPlanes=[new T.Plane(V(0,1,0),-.065)];renderer.setRenderTarget(reflectionTarget);renderer.clear();renderer.render(scene,reflectionCamera);renderer.setRenderTarget(old);renderer.clippingPlanes=clip;waterMeshes.forEach(w=>w.visible=true);if(petalMesh)petalMesh.visible=!reduced;if(smokeMesh)smokeMesh.visible=!reduced;waterMaterial.uniforms.reflectAmount.value=.44;reflectionDirty=false;lastReflectCamera.copy(camera.position);}
+ const old=renderer.getRenderTarget(),clip=renderer.clippingPlanes;waterMeshes.forEach(w=>w.visible=false);if(petalMesh)petalMesh.visible=false;if(smokeMesh)smokeMesh.visible=false;renderer.clippingPlanes=[new T.Plane(V(0,1,0),-.065)];renderer.setRenderTarget(reflectionTarget);renderer.clear();renderer.render(scene,reflectionCamera);renderer.setRenderTarget(old);renderer.clippingPlanes=clip;waterMeshes.forEach(w=>w.visible=true);if(petalMesh)petalMesh.visible=!reduced;if(smokeMesh)smokeMesh.visible=!reduced;waterMaterial.uniforms.reflectAmount.value=.44;reflectionDirty=false;lastReflectCamera.copy(camera.position);lastReflectRotation.copy(camera.quaternion);lastReflectFov=camera.fov;}
 const notes=[{title:'缘溪桃林',quote:'“夹岸数百步，中无杂树，芳草鲜美，落英缤纷。”',text:'桃林在山外。细小的桃花沿老枝与新梢生长，溪岸留出春草、落花和水声，而不是一片混杂的赏花园。',p:[streamX(137)-6,5.5,137],r:4},{title:'舍舟入山',quote:'“便舍船，从口入。初极狭，才通人。”',text:'舟泊水边，人从山口步行进入。这条狭道有真正的地面、侧壁与岩顶，导览会沿着它穿过整段山体。',p:[-43,2.3,85.5],r:2.4},{title:'良田与美池',quote:'“土地平旷，屋舍俨然，有良田、美池、桑竹之属。”',text:'盆地中央保持平旷。春耕的浅绿与湿土彼此错落，溪渠接入池塘，田埂和人行小桥把耕作与日常生活连接起来。',p:[-26,1,7],r:11},{title:'阡陌人家',quote:'“阡陌交通，鸡犬相闻。其中往来种作。”',text:'房屋朴素而有差别：土墙、木柱、茅顶与素瓦，门前有汲水、闲谈和游戏的人。这里首先是一个有人生活的村落。',p:[23,5,-21],r:6},{title:'桑竹之属',quote:'“有良田、美池、桑竹之属。”',text:'桑树与竹林位于村后和田边，从耕地缓缓过渡到山林。这里不把内部植被继续做成桃林，以保留原文里内外有别的空间。',p:[53,6,-60],r:6}];
 let markerButtons=[],proxyObjects=[],raycaster=new T.Raycaster();function makeNotes(){notes.forEach((n,i)=>{let b=document.createElement('button');b.className='marker ui';b.textContent=String(i+1);b.setAttribute('aria-label',n.title);b.onclick=e=>{e.stopPropagation();openNote(i)};document.body.appendChild(b);markerButtons.push(b);let m=new T.Mesh(new T.SphereGeometry(n.r,6,4),new T.MeshBasicMaterial({visible:false}));m.position.set(...n.p);m.userData.note=i;proxyObjects.push(m);scene.add(m)})}
 function inspectBlossom(){
@@ -500,13 +637,16 @@ ambientTracks.stream.volume=.18;ambientTracks.birds.volume=.09;Object.values(amb
 let audioEnabled=false;
 function updateAmbientUI(){icon('audio',audioEnabled?'sound':'muted');$('audio').setAttribute('aria-label',audioEnabled?'关闭环境音':'开启环境音');$('audio').setAttribute('aria-pressed',String(audioEnabled))}
 async function toggleAudio(force){const next=typeof force==='boolean'?force:!audioEnabled;try{if(!next){audioEnabled=false;Object.values(ambientTracks).forEach(track=>track.pause());updateAmbientUI();return}await Promise.all(Object.values(ambientTracks).map(track=>track.play()));audioEnabled=true;updateAmbientUI();toast('环境音已开启 · 溪水与林间鸟鸣')}catch(e){audioEnabled=false;Object.values(ambientTracks).forEach(track=>track.pause());updateAmbientUI();toast('环境音未能开启，请再次点击声音按钮')}}
-function togglePaused(){paused=!paused;icon('pause',paused?'play':'pause');$('pause').classList.toggle('active',paused);$('pause').setAttribute('aria-pressed',paused);$('pause').setAttribute('aria-label',paused?'继续动态 · 空格':'暂停动态 · 空格');toast(paused?'时间停驻；仍可拖动观景。':'风与水，重新流动。')}
-function hideUI(){document.body.classList.toggle('hidden-ui');if(document.body.classList.contains('hidden-ui'))$('poi').classList.remove('open')}
+function updatePauseUI(){icon('pause',paused?'play':'pause');$('pause').classList.toggle('active',paused);$('pause').setAttribute('aria-pressed',paused);$('pause').setAttribute('aria-label',paused?'继续动态 · 空格':'暂停动态 · 空格')}
+function togglePaused(){paused=!paused;updatePauseUI();toast(paused?'时间停驻；仍可拖动观景。':'风与水，重新流动。')}
+let hiddenUIFocus=null;
+function hideUI(){const hidden=document.body.classList.toggle('hidden-ui');if(hidden){hiddenUIFocus=document.activeElement;$('poi').classList.remove('open');$('restore').focus({preventScroll:true})}else if(hiddenUIFocus?.isConnected&&hiddenUIFocus.getClientRects().length){hiddenUIFocus.focus({preventScroll:true})}else $('view').focus({preventScroll:true})}
+function ownsKeyboard(e){return e.target.isContentEditable||!!e.target.closest('input,select,textarea')||(e.key===' '&&!!e.target.closest('button,a,[role=button]'))}
 async function capture(){try{renderReflection();renderer.render(scene,camera);const blob=await new Promise(resolve=>renderer.domElement.toBlob(resolve,'image/png'));if(!blob)throw new Error('未生成图像');const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='桃源·'+(story.active?chapters[story.index].title:shots[activeShot].name)+'·'+({morning:'清晨',day:'晴日',dusk:'暮色'}[weatherName])+'.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);toast('画面已生成，浏览器将下载 PNG（不含界面）。')}catch(e){toast('保存失败：'+e.message)}}
 function wireUI(){$('pause').classList.toggle('active',paused);$('pause').setAttribute('aria-pressed',paused);$('pause').setAttribute('aria-label',paused?'继续动态 · 空格':'暂停动态 · 空格');document.querySelectorAll('[data-shot]').forEach(b=>b.onclick=()=>setShot(Number(b.dataset.shot)));document.querySelectorAll('[data-weather]').forEach(b=>b.onclick=()=>setWeather(b.dataset.weather));$('home').onclick=()=>setShot(2);$('pause').onclick=togglePaused;$('quality').onclick=()=>{setQuality(quality==='high'?'light':'high');toast(quality==='high'?'高画质：柔和阴影与水面倒影。':'轻量模式：降低分辨率与阴影成本，关闭实时倒影。')};$('audio').onclick=toggleAudio;$('annotations').onclick=()=>{annotations=!annotations;$('annotations').classList.toggle('active',annotations);$('annotations').setAttribute('aria-pressed',annotations);if(!annotations)$('poi').classList.remove('open');else toast('点击景物旁的小标记，拾起一句原文。')};$('capture').onclick=capture;$('hide').onclick=hideUI;$('restore').onclick=hideUI;$('help').onclick=()=>$('help-panel').classList.toggle('open');$('poi-close').onclick=()=>$('poi').classList.remove('open');$('guide-start').onclick=startTour;$('guide-pause').onclick=()=>{tour.paused=!tour.paused;$('guide-pause').textContent=tour.paused?'继续':'暂停'};$('guide-stop').onclick=()=>{stopTour();toast('已停驻。可转动视角，或选择五境继续游览。')};$('guide-skip').onclick=()=>setShot(2);
  const canvas=$('view'),pointers=new Map();let drag=0,start=null,pinch=0;canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});drag=0;start={x:e.clientX,y:e.clientY};if(pointers.size===2){let a=[...pointers.values()];pinch=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y)}});canvas.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId))return;let old=pointers.get(e.pointerId),dx=e.clientX-old.x,dy=e.clientY-old.y;drag+=Math.abs(dx)+Math.abs(dy);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointers.size===1)rotate(dx,dy);else if(pointers.size===2){let a=[...pointers.values()],dist=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);if(pinch>0&&dist>0)zoom(pinch/dist);pinch=dist}});canvas.addEventListener('pointerup',e=>{pointers.delete(e.pointerId);if(drag<5&&start&&!tour.active&&!story.active&&!document.body.classList.contains('hidden-ui')){raycaster.setFromCamera(new T.Vector2(e.clientX/innerWidth*2-1,1-e.clientY/innerHeight*2),camera);let hits=raycaster.intersectObjects(proxyObjects,false);if(hits.length&&pointVisible(hits[0].object.position))openNote(hits[0].object.userData.note)}start=null});canvas.addEventListener('pointercancel',e=>pointers.delete(e.pointerId));canvas.addEventListener('wheel',e=>{e.preventDefault();zoom(Math.exp(clamp(e.deltaY,-120,120)*.0014))},{passive:false});canvas.addEventListener('contextmenu',e=>e.preventDefault());
- document.addEventListener('keydown',e=>{if(e.target.tagName==='INPUT')return;if(e.key===' '){e.preventDefault();if(tour.active){tour.paused=!tour.paused;$('guide-pause').textContent=tour.paused?'继续':'暂停'}else togglePaused()}else if(/^[1-5]$/.test(e.key))setShot(Number(e.key)-1);else if(e.key.toLowerCase()==='r')setShot(2);else if(e.key.toLowerCase()==='h')hideUI();else if(e.key.toLowerCase()==='p')capture();else if(e.key==='Escape'){if(tour.active)stopTour();document.body.classList.remove('hidden-ui');$('poi').classList.remove('open');$('help-panel').classList.remove('open')}});
- window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);reflectionDirty=true});reduceQuery.addEventListener?.('change',e=>{reduced=e.matches;if(reduced){paused=true;icon('pause','play');$('pause').setAttribute('aria-pressed','true')}animateWorld(simTime)});document.addEventListener('visibilitychange',()=>{if(!audioEnabled)return;if(document.hidden)Object.values(ambientTracks).forEach(track=>track.pause());else Promise.all(Object.values(ambientTracks).map(track=>track.play())).catch(()=>{})});
+ document.addEventListener('keydown',e=>{if(e.defaultPrevented||ownsKeyboard(e)||e.altKey||e.ctrlKey||e.metaKey||e.repeat)return;if(e.key===' '){e.preventDefault();if(tour.active){tour.paused=!tour.paused;$('guide-pause').textContent=tour.paused?'继续':'暂停'}else togglePaused()}else if(/^[1-5]$/.test(e.key))setShot(Number(e.key)-1);else if(e.key.toLowerCase()==='r')setShot(2);else if(e.key.toLowerCase()==='h')hideUI();else if(e.key.toLowerCase()==='p')capture();else if(e.key==='Escape'){if(tour.active)stopTour();document.body.classList.remove('hidden-ui');$('poi').classList.remove('open');$('help-panel').classList.remove('open')}});
+ window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);reflectionDirty=true});reduceQuery.addEventListener?.('change',e=>{reduced=e.matches;if(reduced){paused=true;updatePauseUI()}animateWorld(simTime)});document.addEventListener('visibilitychange',()=>{if(!audioEnabled)return;if(document.hidden)Object.values(ambientTracks).forEach(track=>track.pause());else Promise.all(Object.values(ambientTracks).map(track=>track.play())).catch(()=>{})});
 }
 // Narrative geometry. No photographs, billboards used as scenery, or network assets.
 let fisherBoat,boatPaddle,dockRope,storyFisher,host,elder,guest,visitors=[],secondHost,countyPeople=[],searchParty=[],meal,secondMeal,trailMarks=[],storySeat,storyCast=[];
@@ -551,22 +691,22 @@ function narrativeGeometry(){
 
  for(let [x,z] of [[20.2,-18.8],[21.7,-17.4],[20.4,-16.3],[38.8,-27.0],[40.1,-28.5]]){let y=baseFloor(x,z);box(x,y+.23,z,.58,.10,.40,'#8b7857');for(let side of [-1,1])box(x+side*.20,y+.11,z,.08,.22,.29,'#796a4e')}
  const bounce=new T.PointLight(C('#eee5cd'),3.4,9,1.4);bounce.position.set(18.35,2.5,-15.0);scene.add(bounce);
- host=person(20.2,-18.8,'sit',.10,1,'#84917c');elder=person(21.7,-17.4,'sit',-1.6,1,'#9d947b');guest=person(20.4,-16.3,'sit',PI,1,'#7f8b7b');
- [host,elder,guest].forEach(g=>{g.visible=false;g.position.y=f+.10});
- storyCast=[host,elder,guest].map(g=>animated.find(a=>a.root===g));partsMesh([[0,.973,-.025,.28,.10,.25,'#aeb2a2'],[0,1.035,-.045,.12,.10,.11,'#aeb2a2']],storyCast[1].upper); // greying hair, ordinary proportions
- for(let [x,z,col] of [[16.2,-11.2,'#aa9375'],[22.5,-12.2,'#8b967e'],[23.2,-10.8,'#919889']]){const g=person(x,z,'chat',0,.98,col);g.visible=false;visitors.push(g)}
- secondHost=person(38.8,-30.0,'chat',0,1,'#9c9177');secondHost.visible=false;
+ host=person(20.2,-18.8,'sit',.10,1,'#4f6280');elder=person(21.7,-17.4,'sit',-1.6,1,'#8b6a4a',{hair:'#c9c0a4',beard:'#b7b0a0'});guest=person(20.4,-16.3,'sit',PI,1,'#6c7c8f',{work:true});
+ [host,elder,guest].forEach(g=>{g.visible=false;g.position.y=f-.60});
+ storyCast=[host,elder,guest].map(g=>animated.find(a=>a.root===g));
+ for(let [x,z,col,fem] of [[16.2,-11.2,'#b0895c'],[22.5,-12.2,'#5d6f8f',true],[23.2,-10.8,'#8a5f52']]){const g=person(x,z,'chat',0,.98,col,{female:fem});g.visible=false;visitors.push(g)}
+ secondHost=person(38.8,-30.0,'chat',0,1,'#7a6a8c');secondHost.visible=false;
  storyFisher=animated.find(a=>a.type==='human'&&a.z===96)?.root;
- if(storyFisher){const hat=new T.Mesh(new T.ConeGeometry(.40,.14,10),mat('#ae986a'));hat.position.set(0,1.94,0);storyFisher.add(hat)}
+ if(storyFisher){const hat=new T.Mesh(new T.ConeGeometry(.40,.14,32),mat('#ae986a'));hat.position.set(0,1.94,0);storyFisher.add(hat)}
  // A restrained scene at the governor's offices, outside the hidden valley.
  house(-23,252,9,6,0,false,5);path([[-35,268],[-28,263],[-23,258]],1.7,'#b9ac8c');
  for(let [x,z] of [[-28.5,256.6],[-17.5,256.6]])box(x,1.85,z,.23,2.8,.23,'#716045');
  const label=narrativeLabel('郡 舍',2.0,.50);label.position.set(-23,3.20,255.065);scene.add(label);
  const desk=new T.Group();desk.position.set(-23,.5,258);scene.add(desk);partsMesh([[0,.75,0,1.85,.12,.85,'#8b7453'],[-.68,.37,0,.10,.74,.62,'#705e45'],[.68,.37,0,.10,.74,.62,'#705e45'],[-.20,.83,0,.72,.035,.38,'#bdb390'],[.56,.83,.05,.18,.05,.16,'#706851']],desk);
- for(let [x,z,col,a] of [[-23,256.8,'#6d7974',0],[-26.6,258.6,'#858874',.70],[-20,257.5,'#899082',-.9]]){let g=person(x,z,'chat',a,1,col);g.visible=false;countyPeople.push(g)}
+ for(let [x,z,col,a] of [[-23,256.8,'#3d4460',0],[-26.6,258.6,'#a08a62',.70],[-20,257.5,'#6b7a6a',-.9]]){let g=person(x,z,'chat',a,1,col);g.visible=false;countyPeople.push(g)}
  mulberry(-34,258,.95);mulberry(-13,258,1.1);fence([[-30,253],[-30,258],[-29,260]],.85);
  for(let z of [110,138,165]){let x=streamX(z)-3.15,y=height(x,z);box(x,y+.33,z,.73,.65,.72,'#939c87','rock');const mark=new T.Group();mark.position.set(x,y+.65,z+.04);scene.add(mark);narrativeBeam(mark,[-.21,.006,-.10],[.16,.009,.13],.035,'#d6cbb0');narrativeBeam(mark,[-.11,.014,-.18],[.10,.014,.19],.028,'#d6cbb0');mark.visible=false;trailMarks.push(mark)}
- for(let [z,col] of [[147,'#717e77'],[151,'#89927f']]){let g=person(streamX(z)-3.7,z,'chat',PI,1,col);g.visible=false;searchParty.push(g)}
+ for(let [z,col] of [[147,'#5f6f86'],[151,'#8a7048']]){let g=person(streamX(z)-3.7,z,'chat',PI,1,col);g.visible=false;searchParty.push(g)}
  path([[streamX(124)-3.7,124],[-52.5,124],[-54.8,122.5],[-55.8,120.5]],.72,'#a5a78a');
  // Explicit transforms allow precise wall/roof clearance validation of the new rails.
  storySolids.push(...[[19,-18,7.2,5.3,.04],[32,-19,6.5,4.8,-.12],[40,-33,7.1,5,.13],[23,-35,7.5,5.2,.06],[7,-38,6.3,4.8,.02],[29,-49,6.2,4.7,-.08],[43,-49,5.8,4.5,.10],[53,-21,5.2,4.2,-.15],[33,-8,5.6,4.5,-.04],[10,-9,4.6,3.8,-.05],[-23,252,9,6,0]]);
@@ -679,7 +819,7 @@ function prepareStory(){
  document.querySelectorAll('[data-part]').forEach(b=>b.onclick=()=>jumpStory(parts[+b.dataset.part].from));
  $('chapter-list').innerHTML=chapters.map((c,i)=>`<article class="chapter-row" data-chapter-row="${i}"><button data-chapter="${i}"><span class="row-title"><small>${String(i+1).padStart(2,'0')}</small>${c.title}<b class="chapter-visited"></b></span><p>${c.cues.map(s=>s.q).join('')}</p></button></article>`).join('');
  document.querySelectorAll('[data-chapter]').forEach(b=>b.onclick=()=>{closeStoryDrawer(false);if(!story.active)startStory(+b.dataset.chapter);else jumpStory(+b.dataset.chapter)});
- try{const s=JSON.parse(localStorage.getItem('taoyuan-fulltext-botanical-v3')||'null');if(s&&Number.isInteger(s.index)&&s.index>=0&&s.index<chapters.length){story.saved=s;$('story-resume').hidden=false;$('story-resume').textContent=`接着上次 · ${String(s.index+1).padStart(2,'0')} ${chapters[s.index].title}`}}catch(_){}
+ try{const s=JSON.parse(localStorage.getItem('taoyuan-fulltext-botanical-v3')||'null');if(s&&Number.isInteger(s.index)&&s.index>=0&&s.index<chapters.length){s.elapsed=Number.isFinite(s.elapsed)?clamp(s.elapsed,0,chapters[s.index].duration):0;s.marks=Number.isFinite(s.marks)?clamp(Math.floor(s.marks),0,3):0;s.done=Array.isArray(s.done)?s.done.filter(i=>Number.isInteger(i)&&chapters[i]?.action):[];s.visited=Array.isArray(s.visited)?s.visited.filter(i=>Number.isInteger(i)&&i>=0&&i<chapters.length):[];story.saved=s;$('story-resume').hidden=false;$('story-resume').textContent=`接着上次 · ${String(s.index+1).padStart(2,'0')} ${chapters[s.index].title}`}}catch(_){}
 }
 function storyPose(index,u){
  u=clamp(u,0,1);let pose;if(index===13){if(u<.35)return{p:storyCurves[13].curve.getPointAt(0),t:V(38.8,1.65,-30),fov:55};u=(u-.35)/.65;}
@@ -701,7 +841,7 @@ function applyStoryPose(){
  if(story.blendQ&&!story.static){const amount=smooth(0,2.1,story.elapsed-story.blendStart);camera.quaternion.copy(story.blendQ.clone().slerp(camera.quaternion,amount));if(amount>=1)story.blendQ=null}
  const localRotate=new T.Quaternion().setFromEuler(new T.Euler(story.lookY,story.lookX,0,'YXZ'));camera.quaternion.multiply(localRotate);
  const fov=clamp(po.fov*story.zoom,39,70);if(Math.abs(camera.fov-fov)>.02){camera.fov=fov;camera.updateProjectionMatrix()}
- reflectionDirty=true;
+ if(camera.position.distanceToSquared(lastReflectCamera)>.001||camera.quaternion.angleTo(lastReflectRotation)>.001||Math.abs(camera.fov-lastReflectFov)>.02)reflectionDirty=true;
 }
 function clockLabel(sec){sec=Math.max(0,Math.floor(sec));return String(Math.floor(sec/60)).padStart(2,'0')+':'+String(sec%60).padStart(2,'0')}
 function respond(text,label='场景释义'){clearTimeout(responseTimeout);$('story-response-label').textContent=label;$('story-response-text').textContent=text;$('story-response').classList.add('on');responseTimeout=setTimeout(()=>$('story-response').classList.remove('on'),5600)}
@@ -719,6 +859,13 @@ function saveStory(){
  try{localStorage.setItem('taoyuan-fulltext-botanical-v3',JSON.stringify(data))}catch(_){}
  $('story-resume').hidden=false;$('story-resume').textContent=`接着上次 · ${String(data.index+1).padStart(2,'0')} ${chapters[data.index].title}`;
 }
+let storyTopTimer;
+function setStoryTopHidden(hidden){
+ document.body.classList.toggle('top-controls-hidden',hidden);
+ $('story-top-restore').hidden=!hidden;
+ $('story-top-restore').setAttribute('aria-expanded',String(!hidden));
+ if(hidden&&$('story-top').contains(document.activeElement))$('story-top-restore').focus({preventScroll:true});
+}
 function startStory(index=0,resume=false){
  if(tour.active)stopTour();if(story.active)stopStory(false);
  story.oldPaused=paused;story.oldWeather=weatherName;story.active=true;story.paused=false;story.finished=false;story.waiting=false;story.index=0;story.elapsed=0;story.lookX=story.lookY=0;story.zoom=1;story.static=reduced;storyLastWeather='';manualLook=null;paused=reduced;
@@ -729,6 +876,7 @@ function startStory(index=0,resume=false){
  jumpStory(index,resume?Math.min(story.saved.elapsed||0,chapters[index].duration*.99):0,false);updateAutoButton();$('story-speed').value=String(story.speed);$('story-sound').innerHTML='<svg viewBox="0 0 24 24">'+icons[audioEnabled?'sound':'muted']+'</svg>';$('story-sound').setAttribute('aria-pressed',audioEnabled);
  if(reduced)toast('已启用定点观景与逐章慢读；不自动移动镜头。');else toast('已展开全文旅程 · 拖动环顾，空格暂停，← → 回看章节。');
  $('story-play').focus({preventScroll:true});
+ clearTimeout(storyTopTimer);setStoryTopHidden(false);storyTopTimer=setTimeout(()=>{if(story.active)setStoryTopHidden(true)},3000);
 }
 function jumpStory(index,elapsed=0,showCut=true){
  const priorQ=camera.quaternion.clone(),priorI=story.index;index=clamp(index,0,chapters.length-1);story.blendQ=story.active&&index===priorI+1&&!chapters[index].cut?priorQ:null;story.blendStart=elapsed;cancelStorySpeech();story.index=index;story.elapsed=clamp(elapsed,0,chapters[index].duration);story.paused=false;story.waiting=false;story.finished=false;story.lookX=story.lookY=0;story.zoom=1;storyLastWeather='';$('story-ending').classList.remove('on');
@@ -740,8 +888,8 @@ function jumpStory(index,elapsed=0,showCut=true){
  renderer.shadowMap.needsUpdate=true;syncNarrationToStory(!story.paused);saveStory();
 }
 function stopStory(home=false){
- if(!story.active)return;saveStory();cancelStorySpeech();story.active=false;story.paused=false;story.finished=false;closeStoryDrawer(false);document.body.classList.remove('storying','hidden-ui');$('story-ending').classList.remove('on');$('story-hotspot').style.display='none';$('story-response').classList.remove('on');$('scene-cut').classList.remove('on');
- clearTimeout(responseTimeout);clearTimeout(cutTimeout);paused=story.oldPaused;setWeather(story.oldWeather);applyNarrativeWorld(-1,0);icon('pause',paused?'play':'pause');$('pause').setAttribute('aria-pressed',paused);
+ if(!story.active)return;clearTimeout(storyTopTimer);setStoryTopHidden(false);saveStory();cancelStorySpeech();story.active=false;story.paused=false;story.finished=false;closeStoryDrawer(false);document.body.classList.remove('storying','hidden-ui');$('story-ending').classList.remove('on');$('story-hotspot').style.display='none';$('story-response').classList.remove('on');$('scene-cut').classList.remove('on');
+ clearTimeout(responseTimeout);clearTimeout(cutTimeout);paused=story.oldPaused;setWeather(story.oldWeather);applyNarrativeWorld(-1,0);updatePauseUI();
  if(home)setShot(2);else{let d=V();camera.getWorldDirection(d);manualLook={p:camera.position.clone(),yaw:Math.atan2(d.x,d.z),pitch:Math.asin(d.y)};caption(camera.position.z>100?0:camera.position.z>48?1:2)}
  $('story-start').focus({preventScroll:true});
 }
@@ -812,13 +960,14 @@ function openStoryDrawer(tab='chapters'){
  document.querySelectorAll('[data-chapter-row]').forEach(e=>{const i=+e.dataset.chapterRow;e.classList.toggle('active',i===story.index);e.querySelector('.chapter-visited').textContent=story.visited.has(i)?'已阅':''});$('drawer-close').focus({preventScroll:true});
 }
 function switchDrawer(tab){document.querySelectorAll('[data-drawer]').forEach(b=>b.classList.toggle('active',b.dataset.drawer===tab));$('chapter-list').hidden=tab!=='chapters';$('notebook-list').hidden=tab!=='notebook'}
-function closeStoryDrawer(resume=true){const open=$('reading-drawer').classList.contains('open');$('reading-drawer').classList.remove('open');$('drawer-shade').classList.remove('open');$('story-outline').setAttribute('aria-expanded','false');if(resume&&story.drawerWasPlaying&&story.active)toggleStoryPause(false);story.drawerWasPlaying=false;if(open&&drawerFocus?.isConnected)drawerFocus.focus({preventScroll:true})}
+function closeStoryDrawer(resume=true){const open=$('reading-drawer').classList.contains('open');$('reading-drawer').classList.remove('open');$('drawer-shade').classList.remove('open');$('story-outline').setAttribute('aria-expanded','false');if(resume&&story.drawerWasPlaying&&story.active)toggleStoryPause(false);story.drawerWasPlaying=false;if(open&&drawerFocus?.isConnected){const target=document.body.classList.contains('top-controls-hidden')&&$('story-top').contains(drawerFocus)?$('story-top-restore'):drawerFocus;target.focus({preventScroll:true})}}
 function cancelStorySpeech(){narrationAudio.pause();story.voiceBusy=false;}
 function updateNarrationHighlight(){
  const c=chapters[story.index]?.cues[story.cue];if(!c||!storyTextSpans.length)return;
  const absolute=chapters[story.index].audioStart+story.elapsed;
  const progress=absolute<=c.audioStart?0:absolute>=c.audioEnd?1:(absolute-c.audioStart)/Math.max(.01,c.audioEnd-c.audioStart);
- const count=Math.floor(progress*storyTextSpans.length);
+ const count=Math.floor(progress*storyTextSpans.length),highlight=count*2+(progress>0&&progress<1?1:0);
+ if(lastVoiceChar===highlight)return;lastVoiceChar=highlight;
  storyTextSpans.forEach((s,i)=>{s.classList.toggle('said',i<count);s.classList.toggle('speaking',progress>0&&progress<1&&i===Math.min(count,storyTextSpans.length-1))});
 }
 function syncNarrationToStory(play=false){
@@ -841,6 +990,7 @@ function seekStory(value){
  const c=chapters[story.index],playing=!story.paused;narrationAudio.pause();story.elapsed=clamp(value,0,.999)*c.duration;story.finished=false;story.waiting=false;story.blendQ=null;renderer.shadowMap.needsUpdate=true;$('story-ending').classList.remove('on');const index=c.cues.findIndex(v=>story.elapsed<v.end);setStoryCue(Math.max(0,index),false);applyNarrativeWorld(story.index,story.elapsed/c.duration);applyStoryPose();updateStoryClimate(true);updateStoryHUD();updateStoryPlay();syncNarrationToStory(playing);saveStory();
 }
 function narrativeUI(){
+ $('story-top-restore').onclick=()=>{clearTimeout(storyTopTimer);setStoryTopHidden(false);$('story-outline').focus({preventScroll:true})};
  $('story-restart').onclick=()=>startStory();$('story-center').onclick=()=>{story.lookX=story.lookY=0;story.zoom=1;applyStoryPose()};$('story-start').onclick=()=>startStory();$('story-resume').onclick=()=>startStory(0,true);$('story-outline').onclick=()=>openStoryDrawer();$('story-exit').onclick=()=>stopStory(true);$('story-photo').onclick=capture;$('story-hide').onclick=hideUI;$('story-voice').onclick=toggleStoryVoice;
  $('story-sound').onclick=async()=>{await toggleAudio();$('story-sound').innerHTML='<svg viewBox="0 0 24 24">'+icons[audioEnabled?'sound':'muted']+'</svg>';$('story-sound').setAttribute('aria-pressed',audioEnabled);$('story-sound').setAttribute('aria-label',audioEnabled?'关闭环境音':'开启环境音')};
  $('story-prev').onclick=()=>jumpStory(story.index-1);$('story-next').onclick=nextStory;$('story-play').onclick=()=>toggleStoryPause();$('story-auto').onclick=()=>{story.auto=!story.auto;updateAutoButton();if(story.waiting&&story.auto)nextStory();saveStory()};
@@ -851,8 +1001,8 @@ function narrativeUI(){
  $('drawer-close').onclick=()=>closeStoryDrawer();$('drawer-shade').onclick=()=>closeStoryDrawer();document.querySelectorAll('[data-drawer]').forEach(b=>b.onclick=()=>switchDrawer(b.dataset.drawer));
  $('story-again').onclick=()=>startStory();$('story-end-home').onclick=()=>stopStory(true);$('story-end-notes').onclick=()=>openStoryDrawer('notebook');
  document.addEventListener('keydown',e=>{
- const drawer=$('reading-drawer').classList.contains('open');if(drawer){if(e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();closeStoryDrawer();return}if(e.key==='Tab'){const focus=[...$('reading-drawer').querySelectorAll('button:not([hidden]),a')].filter(el=>el.offsetParent!==null);let first=focus[0],last=focus[focus.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}if(e.key!=='Tab'&&!['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName)&&[' ','ArrowLeft','ArrowRight','1','2','3','4','5','r','R'].includes(e.key)){e.preventDefault();e.stopImmediatePropagation()}return}
- if(!story.active)return;if(['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName))return;
+ const drawer=$('reading-drawer').classList.contains('open');if(drawer){if(e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();closeStoryDrawer();return}if(e.key==='Tab'){const focus=[...$('reading-drawer').querySelectorAll('button:not([hidden]),a')].filter(el=>el.offsetParent!==null);let first=focus[0],last=focus[focus.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}if(e.key!=='Tab'&&!ownsKeyboard(e)&&[' ','ArrowLeft','ArrowRight','1','2','3','4','5','r','R'].includes(e.key)){e.preventDefault();e.stopImmediatePropagation()}return}
+ if(!story.active||ownsKeyboard(e)||e.altKey||e.ctrlKey||e.metaKey||e.repeat)return;
  const keys=[' ','ArrowLeft','ArrowRight','Escape','r','R','h','H','p','P'];if(keys.includes(e.key)||/^[1-5]$/.test(e.key)){e.stopImmediatePropagation();if(e.key===' '||e.key.startsWith('Arrow'))e.preventDefault();if(e.key===' ')toggleStoryPause();else if(e.key==='ArrowLeft')jumpStory(story.index-1);else if(e.key==='ArrowRight')nextStory();else if(e.key==='Escape')stopStory(true);else if(e.key.toLowerCase()==='h')hideUI();else if(e.key.toLowerCase()==='p')capture();else if(e.key.toLowerCase()==='r'){story.lookX=story.lookY=0;story.zoom=1;applyStoryPose()}else if(/^[1-5]$/.test(e.key)){stopStory(false);setShot(+e.key-1)}}
  },true);
  document.addEventListener('visibilitychange',()=>{if(document.hidden&&story.active&&!story.paused&&!story.waiting){toggleStoryPause(true);saveStory()}});
@@ -868,7 +1018,7 @@ function validateStoryRoutes(samples=120){
  return{samples:chapters.length*(samples+1),issues};
 }
 
-let lastTime=0;function renderLoop(ms){if(!ready)return;requestAnimationFrame(renderLoop);let dt=Math.min(.07,(ms-lastTime)/1000||.016);lastTime=ms;if(document.hidden)return;frame++;if(story.active)updateStory(dt);else if(tour.active)updateTour(dt);else updateObserver(dt);if(!paused&&!(story.active&&story.paused)){simTime+=dt;animateWorld(simTime)}if(weatherChanging&&!(story.active&&story.paused))updateWeather(dt);updateBlossomWeather(simTime);for(let m of detailMeshes){let limit=m.userData.cat==='detail'?(quality==='high'?112:72):(quality==='high'?190:135);m.visible=Math.hypot(camera.position.x-(m.position.x+21),camera.position.z-(m.position.z+21))<limit}if(frame%22===0&&!paused)renderer.shadowMap.needsUpdate=true;if(camera.position.distanceTo(lastReflectCamera)>.35)reflectionDirty=true;if(frame%5===0||reflectionDirty&&frame<3)renderReflection();renderer.render(scene,camera);if(frame%5===0)updateNotes()}
+let lastTime=0;function renderLoop(ms){if(!ready)return;requestAnimationFrame(renderLoop);let dt=Math.min(.07,(ms-lastTime)/1000||.016);lastTime=ms;if(document.hidden)return;frame++;if(story.active)updateStory(dt);else if(tour.active)updateTour(dt);else updateObserver(dt);if(!paused&&!(story.active&&story.paused)){simTime+=dt;animateWorld(simTime)}if(weatherChanging&&!(story.active&&story.paused))updateWeather(dt);updateBlossomWeather(simTime);for(let m of detailMeshes){let limit=m.userData.cat==='detail'?(quality==='high'?112:72):(quality==='high'?190:135);m.visible=Math.hypot(camera.position.x-(m.position.x+21),camera.position.z-(m.position.z+21))<limit}if(frame%22===0&&!paused&&!(story.active&&story.paused))renderer.shadowMap.needsUpdate=true;if(camera.position.distanceTo(lastReflectCamera)>.35)reflectionDirty=true;if(frame%5===0||reflectionDirty&&frame<3)renderReflection();renderer.render(scene,camera);if(frame%5===0)updateNotes()}
 async function stage(progress,message,fn){$('load-progress').style.width=progress+'%';$('load-status').textContent=message;await new Promise(r=>setTimeout(r,24));fn()}
 async function init(){try{if(!T)throw new Error('内置三维引擎不可用');await stage(6,'唤醒光与山色',setup);await stage(15,'筑起群山，留下平旷土地',terrain);await stage(32,'连通山口与狭道',makeTunnel);await stage(42,'引水成溪，留一方美池',makeWater);await stage(52,'屋舍俨然，阡陌交通',()=>{agriculture();farmPaths()});await stage(64,'桃花在外，桑竹在内',()=>{vegetation();meadowExtras()});await stage(79,'点入种作往来与鸡犬人声',()=>{boat();life();narrativeGeometry();atmosphereDetails()});await stage(89,'整理几何与观景路径',()=>{flush();makeNotes();buildGuide();wireUI();prepareStory();narrativeUI();applyNarrativeWorld(-1,0);setQuality(quality);setShot(2);setWeather('morning',true);animateWorld(0);updateBlossomWeather(0)});await stage(96,'薄雾将散，桃源已在眼前',()=>{renderReflection();renderer.render(scene,camera)});ready=true;window.__TAOYUAN__={ready:true,botany:{state:botanicalState,trees:peachTrees,sources:blossomSources,update:updateBlossomWeather},worldState:()=>({boat:fisherBoat.position.toArray(),marks:trailMarks.map(m=>m.visible),food:meal.userData.food.visible,host:host.visible,visitors:visitors.map(g=>g.visible),search:searchParty.map(g=>g.visible)}),narrative:{story,chapters,parts,start:startStory,stop:stopStory,jump:jumpStory,seek:seekStory,pose:storyPose,update:updateStory,pause:toggleStoryPause,act:completeStoryAction,validate:validateStoryRoutes,save:saveStory,world:applyNarrativeWorld,drawer:openStoryDrawer,closeDrawer:closeStoryDrawer,rotate,zoom,finish:finishStory},revision:T.REVISION,renderer,scene,camera,shots,setShot,setWeather,startTour,stopTour,guidePose,guide:tour,height,tunnelX,caveFloor,cameraClear,notes,openNote,inspectBlossom,setQuality,render:()=>{renderReflection();renderer.render(scene,camera)},state:()=>({quality,paused,reduced,weather:weatherName,shot:activeShot,tour:tour.active,tourPaused:tour.paused,simTime,frame,audioEnabled,annotations,geometry:renderer.info.render,position:camera.position.toArray()})};$('load-progress').style.width='100%';$('load-status').textContent='山水已展开';requestAnimationFrame(renderLoop);setTimeout(()=>{$('loading').style.opacity='0';setTimeout(()=>$('loading').style.display='none',750)},100);if(reduced)setTimeout(()=>toast('已遵循系统偏好暂停动态；可手动继续。'),950)}catch(e){fail(e)}}
 init();
