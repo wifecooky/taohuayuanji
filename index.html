@@ -934,6 +934,7 @@ function applyNarrativeWorld(i,u){
  */
 
 const NARRATION_SRC='audio/taohuayuan-recitation.mp3';
+const NARRATION_LEAD=36;// 录音前 44 秒是纯配乐，从 36 秒起播，留 8 秒引子；时钟与总进度都减去这段
 const narrationAudio=new Audio(NARRATION_SRC);
 narrationAudio.preload='auto';
 narrationAudio.volume=.92;
@@ -960,7 +961,7 @@ const narrationTimeline=[
  [19,265.430,272.680],[19,272.680,277.030],[19,279.830,283.680]
 ];
 const chapterAudioBounds=[
- [0,58.480],[58.480,72.640],[72.640,93.440],[93.440,97.920],[97.920,106.400],
+ [NARRATION_LEAD,58.480],[58.480,72.640],[72.640,93.440],[93.440,97.920],[97.920,106.400],
  [106.400,148.470],[148.470,153.190],[153.190,164.640],[164.640,173.120],[173.120,182.720],
  [182.720,198.070],[198.070,216.320],[216.320,223.200],[223.200,240.400],[240.400,243.920],
  [243.920,248.160],[248.160,252.880],[252.880,257.200],[257.200,265.430],[265.430,284.200]
@@ -1012,8 +1013,8 @@ function prepareStory(){
  storyCurves[16]=rail([[-30,4.2,269],[-28,3.5,266],[-25.5,2.75,263]],[-23,1.9,257.5]);
  storyCurves[18]=rail([[streamX(125)+.35,2.35,125.9],eye(streamX(125)-3.7,125),eye(-52.5,124),eye(-54.8,122.5),eye(-55.8,120.5)],null,{terrain:true});
  storyCurves[19]=rail([[streamX(157),3.15,157],[streamX(160),4.5,160],[streamX(164),6,164]],[streamX(137),1.8,137],{fov:54});
- chapters.forEach((c,i)=>{const [audioStart,audioEnd]=chapterAudioBounds[i];c.audioStart=audioStart;c.audioEnd=audioEnd;c.duration=audioEnd-audioStart;c.start=audioStart;const matches=narrationTimeline.filter(v=>v[0]===i);c.cues.forEach((cue,j)=>{const m=matches[j]||matches[matches.length-1];cue.audioStart=m[1];cue.audioEnd=m[2];cue.start=Math.max(0,m[1]-audioStart);cue.end=Math.min(c.duration,m[2]-audioStart)});});
- story.total=chapterAudioBounds[chapterAudioBounds.length-1][1];
+ chapters.forEach((c,i)=>{const [audioStart,audioEnd]=chapterAudioBounds[i];c.audioStart=audioStart;c.audioEnd=audioEnd;c.duration=audioEnd-audioStart;c.start=audioStart-NARRATION_LEAD;const matches=narrationTimeline.filter(v=>v[0]===i);c.cues.forEach((cue,j)=>{const m=matches[j]||matches[matches.length-1];cue.audioStart=m[1];cue.audioEnd=m[2];cue.start=Math.max(0,m[1]-audioStart);cue.end=Math.min(c.duration,m[2]-audioStart)});});
+ story.total=chapterAudioBounds[chapterAudioBounds.length-1][1]-NARRATION_LEAD;
  $('route-items').innerHTML=parts.map((p,i)=>`<button data-part="${i}" aria-label="跳至${p.title}">${p.title}</button>`).join('');
  document.querySelectorAll('[data-part]').forEach(b=>b.onclick=()=>jumpStory(parts[+b.dataset.part].from));
  $('chapter-list').innerHTML=chapters.map((c,i)=>`<article class="chapter-row" data-chapter-row="${i}"><button data-chapter="${i}"><span class="row-title"><small>${String(i+1).padStart(2,'0')}</small>${c.title}<b class="chapter-visited"></b></span><p>${c.cues.map(s=>s.q).join('')}</p></button></article>`).join('');
