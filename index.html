@@ -678,7 +678,8 @@ function person(x,z,role='chat',angle=0,s=1,clothes='#71847d',opts={}){const roo
   [geoSph(.022),0,HD-.016,.132,skin,.68,1.3,.78],[geoSph(.025),0,HD-.066,.119,'#a17764',1,.17,.2],
   [geoSph(.027),-.126,HD-.006,-.002,skin,.52,1,.7],[geoSph(.027),.126,HD-.006,-.002,skin,.52,1,.7]
  ];
- const hairParts=[[new T.SphereGeometry(.153,24,12,0,TAU,0,1.51),0,HD+.016,-.014,hair,.93,1,.97],[geoSph(.14),0,HD-.005,-.08,hair,.93,1,.49]];
+ const hairParts=[[new T.SphereGeometry(.153,24,12,0,TAU,0,1.51),0,HD+.016,-.014,hair,.97,1.04,1.0],// 发帽要罩住头颅 loft 的额顶与后脑，否则皮肤会从发际顶出来
+[geoSph(.14),0,HD-.005,-.08,hair,.93,1,.49]];
  if(kid)hairParts.push([geoSph(.10),0,HD+.09,.068,hair,1.18,.58,.56],[geoSph(.07),-.126,HD-.035,-.024,hair,.38,1.7,.55],[geoSph(.07),.126,HD-.035,-.024,hair,.38,1.7,.55]);
  else if(female)hairParts.push([geoSph(.076),0,HD+.14,-.082,hair,1.22,.88,1],[geoSph(.052),0,HD+.035,-.151,hair],[geoCyl(.007,.007,.23,8),0,HD+.16,-.085,'#a28c62',1,1,1,0,0,1.4]);
  else if(work)hairParts.push([geoCyl(.145,.145,.043),0,HD+.098,-.014,'#655d50',1,1,.94],[geoSph(.063),0,HD+.192,-.039,hair,.85,1,.85]);
