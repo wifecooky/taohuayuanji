@@ -47,19 +47,29 @@
 /* Responsive reading controls and contrast follow the existing paper palette. */
 input:focus-visible,select:focus-visible,#view:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
 .hidden-ui .ui{visibility:hidden}
-/* 首页：正中标题 + 循文入境；点击即是首次交互，顺手把环境音放出来 */
-.intro .ui{opacity:0;pointer-events:none}
-.intro-veil{position:fixed;inset:0;z-index:15;display:flex;align-items:center;justify-content:center;text-align:center;background:radial-gradient(ellipse at center,rgba(248,248,235,.18) 0%,rgba(248,248,235,.55) 100%);transition:opacity .9s}
-body:not(.intro) .intro-veil{opacity:0;pointer-events:none;visibility:hidden;transition:opacity .9s,visibility 0s .9s}
-.intro-card{display:flex;flex-direction:column;align-items:center;gap:14px;padding:46px 64px 34px;color:#2f4236;background:rgba(247,246,232,.9);border:1px solid rgba(255,255,246,.8);border-radius:7px;box-shadow:0 18px 70px #1a392b2e;backdrop-filter:blur(18px)}.intro-card .eyebrow,.intro-card .en,.intro-skip{color:#5f6f5c}
-.intro-card .eyebrow{font-size:12px;letter-spacing:.34em;justify-content:center;margin-bottom:6px}
-.intro-title{font-family:var(--serif);font-weight:500;font-size:74px;letter-spacing:.26em;line-height:1.2;display:flex;align-items:center;gap:28px;margin:0}
-.intro-title .divide{width:1px;height:52px;background:var(--line)}
-.intro-title small{font-size:28px;letter-spacing:.34em;font-weight:400}
-.intro-card .en{font-size:11px;letter-spacing:.3em;margin-top:2px;opacity:.6}
-.intro-start{margin-top:34px;font-size:16px;padding:19px 30px;gap:22px}
-.intro-skip{font-size:11px;letter-spacing:.22em;background:none;padding:10px;text-decoration:underline dotted;text-underline-offset:5px}
-@media(max-width:760px){.intro-card{padding:30px 22px 22px;margin:0 16px}.intro-title{font-size:44px;gap:14px;letter-spacing:.2em}.intro-title .divide{height:30px}.intro-title small{font-size:17px}.intro-card .en{display:none}.intro-start{margin-top:24px;font-size:14px;padding:14px 22px}}
+/* A compact title page leaves the surrounding landscape visible. */
+.intro .ui{opacity:0;visibility:hidden;pointer-events:none}
+.intro-veil{position:fixed;inset:0;z-index:15;display:flex;align-items:center;justify-content:center;padding:24px;text-align:center;background:rgba(30,48,38,.12);overflow:auto;transition:opacity .6s ease-out}
+body:not(.intro) .intro-veil{opacity:0;pointer-events:none;visibility:hidden;transition:opacity .6s ease-out,visibility 0s .6s}
+.intro-card{--intro-ink:#314b3b;--intro-muted:#627260;--intro-paper:#f3f2e6;display:flex;flex-direction:column;align-items:center;width:540px;max-width:100%;flex-shrink:0;padding:44px 36px 28px;color:var(--intro-ink);background:var(--intro-paper);border-radius:12px;box-shadow:0 16px 56px rgba(21,40,30,.18)}
+.intro-title{font-family:var(--serif);font-weight:400;font-size:68px;letter-spacing:.16em;line-height:1.25;display:flex;align-items:center;justify-content:center;gap:24px;margin:0;white-space:nowrap}
+.intro-title>span:first-child{padding-left:.16em}
+.intro-title .divide{width:1px;height:40px;background:rgba(49,75,59,.2)}
+.intro-title small{font-size:21px;letter-spacing:.22em;font-weight:400}
+.intro-byline{margin:20px 0 0;font-size:12px;letter-spacing:.2em;color:var(--intro-muted)}
+.intro-card .en{display:flex;flex-wrap:wrap;justify-content:center;column-gap:.65em;row-gap:6px;font:9px/1.6 Georgia,serif;letter-spacing:.16em;margin:14px 0 0;color:var(--intro-muted);opacity:1}
+.intro-card .en span{white-space:nowrap}
+.intro-start{justify-content:center;margin-top:30px;min-height:52px;min-width:204px;padding:14px 24px;gap:24px;font-size:16px;border:0;border-radius:4px;background:#425a4b;color:#f9f3e3;box-shadow:none;transition:background-color .2s,transform .2s}
+.intro-start svg{width:19px;height:19px;transition:transform .2s}
+.intro-skip{min-height:44px;margin-top:8px;padding:10px 14px;font-size:12px;letter-spacing:.12em;line-height:1.5;background:transparent;color:var(--intro-muted);text-decoration:underline;text-decoration-color:rgba(98,114,96,.4);text-underline-offset:5px;transition:color .2s,text-decoration-color .2s}
+.intro-card button:focus-visible{outline:2px solid var(--intro-ink);outline-offset:4px}
+.intro-card ::selection{background:#d8dfcb;color:var(--intro-ink)}
+@media(hover:hover){.intro-start:hover{background:#334d3d}.intro-start:hover svg{transform:translateX(3px)}.intro-skip:hover{color:var(--intro-ink);text-decoration-color:currentColor}}
+.intro-start:active{transform:translateY(1px)}
+@media(max-width:600px){.intro-veil{padding:20px}.intro-card{padding:36px 24px 22px}.intro-title{font-size:54px;gap:18px}.intro-title .divide{height:32px}.intro-title small{font-size:17px;letter-spacing:.16em}.intro-byline{font-size:12px;margin-top:16px}.intro-card .en{font-size:9px;margin-top:12px;max-width:260px}.intro-start{margin-top:26px}.intro-skip{font-size:13px}}
+@media(max-width:360px){.intro-veil{padding:16px}.intro-card{padding:30px 18px 20px}.intro-title{font-size:46px;gap:14px}.intro-title small{font-size:15px}.intro-title .divide{height:28px}}
+@media(max-height:520px){.intro-veil{padding:16px}.intro-card{padding:24px 28px 16px}.intro-title{font-size:48px;gap:20px}.intro-title small{font-size:18px}.intro-title .divide{height:30px}.intro-byline{margin-top:12px}.intro-card .en{margin-top:8px}.intro-start{margin-top:18px;min-height:48px}.intro-skip{margin-top:4px}}
+@media(prefers-reduced-motion:reduce){.intro-veil,.intro-start,.intro-start svg,.intro-skip,body:not(.intro) .intro-veil{transition:none}.intro-start:hover svg,.intro-start:active{transform:none}}
 .scene-note{background:var(--paper)}
 body.dusk .header:before{background:radial-gradient(ellipse at 35% 45%,rgba(34,53,52,.6),transparent 72%)}
 .story-top button{color:#35473f}.story-top .sound-on{color:#fff5e2}
@@ -99,7 +109,15 @@ body.dusk .header:before{background:radial-gradient(ellipse at 35% 45%,rgba(34,5
 <body class="intro">
 <canvas id="view" tabindex="0" aria-label="桃源三维景观：拖动观察，滚轮缩放；使用下方五境切换观景位置"></canvas>
 <div class="header ui"><div class="eyebrow">陶渊明 · 桃花源记</div><h1 class="title">桃源<span class="divide"></span><small id="head-scene">豁然开朗</small></h1><div class="en">THE PEACH BLOSSOM SPRING · A LITERARY JOURNEY</div></div>
-<div class="intro-veil" id="intro"><div class="intro-card"><div class="eyebrow">陶渊明 · 桃花源记</div><div class="intro-title">桃源<span class="divide"></span><small>豁然开朗</small></div><div class="en">THE PEACH BLOSSOM SPRING · A LITERARY JOURNEY</div><button class="guide-start intro-start" id="intro-start">循文入境 <svg viewBox="0 0 24 24"><path d="M4 12h15m-5-5 5 5-5 5"/></svg></button><button class="intro-skip" id="intro-skip">先随意看看风景</button></div></div>
+<section class="intro-veil" id="intro" aria-labelledby="intro-title">
+ <div class="intro-card">
+  <h2 class="intro-title" id="intro-title"><span>桃源</span><span class="divide" aria-hidden="true"></span><small>豁然开朗</small></h2>
+  <p class="intro-byline">陶渊明 · 桃花源记</p>
+  <p class="en" lang="en"><span>THE PEACH BLOSSOM SPRING</span><span>· A LITERARY JOURNEY</span></p>
+  <button class="guide-start intro-start" id="intro-start">循文入境 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12h15m-5-5 5 5-5 5"/></svg></button>
+  <button class="intro-skip" id="intro-skip">先随意看看风景</button>
+ </div>
+</section>
 <div class="top-right ui"><button class="quality glass" id="skyctl" title="天时：时辰、节令与阴晴" aria-pressed="false">天时</button><button class="quality glass" id="quality" title="切换渲染质量">高画质</button><button id="audio" class="icon-button glass" aria-label="开启环境音" aria-pressed="false"></button></div>
 <div class="sky-panel glass ui" id="sky-panel">
 <h4>时辰</h4><div class="sky-row"><button data-weather="morning" class="active" aria-pressed="true">清晨</button><button data-weather="day" aria-pressed="false">白日</button><button data-weather="dusk" aria-pressed="false">暮色</button><button data-weather="night" aria-pressed="false">月夜</button></div><span id="hour-label">—</span>
@@ -937,12 +955,9 @@ const ez={},ezSeasons={
 // 桃树也过四季：春花，夏叶带青桃，秋叶转色、桃子熟了，冬天只剩老枝。
 // 调色盘长度必须和春天一致：pick() 无论数组多长都只取一个随机数，
 // 但只要这里少调一次 rand，后面所有树石房舍的位置都会跟着挪。
-const PEACH_WEAR={
- spring:{bloom:true, s:1,   wear:['#ffffff','#fff0f0','#ffe1e7','#f5cfda'],budS:1,  bud:['#bc5371','#ca6d83','#d88191'],leaf:'#8aa463'},
- summer:{bloom:false,s:1.75,wear:['#4e7a41','#59864a','#659155','#719c61'],budS:1.5,bud:['#7d9e4e','#8aa957','#96b463'],leaf:'#5c8a4b'},
- autumn:{bloom:false,s:1.75,wear:['#b0612c','#be7134','#c9833f','#d3954d'],budS:2.1,bud:['#c04b33','#cd5f41','#d7744f'],leaf:'#c07c38'},
- winter:{bloom:false,s:0,   wear:['#6b6450','#79715a','#635d4c','#6f6957'],budS:0,  bud:['#6b6450','#79715a','#635d4c'],leaf:'#6b6450'}};
-const peachWear=PEACH_WEAR[ezSeason]||PEACH_WEAR.spring,blossomSeason=ezSeason==='spring';
+/* 桃花不跟四季走。《桃花源记》里这片林永远是“芳草鲜美，落英缤纷”的那一天，
+ * 结了果反而不是渔人所见了。 */
+const peachWear={bloom:true,s:1,wear:['#ffffff','#fff0f0','#ffe1e7','#f5cfda'],budS:1,bud:['#bc5371','#ca6d83','#d88191'],leaf:'#8aa463'},blossomSeason=true;
 function ezOptions(seed,leaf,far){const L=30;return{seed,type:'deciduous',bark:{textured:false},
  branch:{levels:2,angle:{1:55,2:50},children:{0:far?3:4,1:far?2:3},force:{direction:{x:0,y:1,z:0},strength:-.01},gnarliness:{0:.08,1:.12,2:.15},length:{0:L,1:L*.55,2:L*.3},radius:{0:L*.045,1:L*.028,2:L*.018},
   sections:{0:far?4:6,1:far?3:4,2:3},segments:{0:far?4:6,1:far?3:4,2:3},start:{1:.45,2:.3},taper:{0:.6,1:.6,2:.7}},
@@ -1978,7 +1993,7 @@ function seekStory(value){
 }
 function narrativeUI(){
  $('story-top-restore').onclick=()=>{clearTimeout(storyTopTimer);setStoryTopHidden(false);$('story-outline').focus({preventScroll:true})};
- $('story-restart').onclick=()=>startStory();$('story-center').onclick=()=>{story.lookX=story.lookY=0;story.zoom=1;applyStoryPose()};$('story-start').onclick=()=>startStory();const leaveIntro=()=>document.body.classList.remove('intro');$('intro-start').onclick=()=>{leaveIntro();toggleAudio(true);startStory(0,true)};$('intro-skip').onclick=leaveIntro;$('story-resume').onclick=()=>startStory(0,true);$('story-outline').onclick=()=>openStoryDrawer();$('story-exit').onclick=()=>stopStory(true);$('story-photo').onclick=capture;$('story-hide').onclick=hideUI;$('story-voice').onclick=toggleStoryVoice;
+ $('story-restart').onclick=()=>startStory();$('story-center').onclick=()=>{story.lookX=story.lookY=0;story.zoom=1;applyStoryPose()};$('story-start').onclick=()=>startStory();const leaveIntro=()=>{document.body.classList.remove('intro');$('view').focus({preventScroll:true})};$('intro-start').onclick=()=>{leaveIntro();toggleAudio(true);startStory(0,true)};$('intro-skip').onclick=leaveIntro;$('story-resume').onclick=()=>startStory(0,true);$('story-outline').onclick=()=>openStoryDrawer();$('story-exit').onclick=()=>stopStory(true);$('story-photo').onclick=capture;$('story-hide').onclick=hideUI;$('story-voice').onclick=toggleStoryVoice;
  $('story-sound').onclick=()=>toggleAudio();
  $('story-prev').onclick=()=>jumpStory(story.index-1);$('story-next').onclick=nextStory;$('story-play').onclick=()=>toggleStoryPause();$('story-auto').onclick=()=>{story.auto=!story.auto;updateAutoButton();if(story.waiting&&story.auto)nextStory();saveStory()};
  $('story-speed').onchange=e=>{story.speed=+e.target.value;narrationAudio.playbackRate=story.speed;if(story.voice)syncNarrationToStory(!story.paused);saveStory()};
