@@ -202,7 +202,7 @@ function polyGeo(points,y){const shape=new T.Shape();points.forEach((p,i)=>i?sha
 function poly(points,y,h){return mesh(polyGeo(points,y),mat(h),0,0,0,false)}
 const streamX=z=>-43+6.6*Math.sin((z-87)*.051)+2.2*Math.sin((z-87)*.097);
 const tunnelX=z=>-43+1.05*Math.sin(clamp((z-49)/35,0,1)*PI);
-const channels=[{p:[[-50,-68],[-47,-51],[-44,-37],[-43,-17],[-37,-1],[-32,2]],w:1.65},{p:[[-22,16],[-18,27],[-4,33],[25,32],[55,24],[72,27]],w:1.6},{p:[[-43,-25],[-24,-24],[-14,-23],[-13,-7],[7,-7],[7,14],[-4,25],[-18,27]],w:.68},{p:[[7,12],[23,12],[40,12],[49,21],[55,24]],w:.58}];
+const channels=[{p:[[-50,-68],[-47,-51],[-44,-37],[-43,-17],[-37,-1],[-32,2]],w:1.65},{p:[[-22,16],[-18,27],[-4,33],[25,32],[55,24],[72,27]],w:1.6},{p:[[-43,-25],[-24,-24],[-14,-23],[-13,-7],[7,-7],[7,14],[-4,25],[-18,27]],w:.68},{p:[[7,12],[23,12],[40,12],[49,21],[55,24]],w:.58},{p:[[-44,-37],[-33,-41],[-18,-44],[0,-45],[18,-45],[34,-44],[47,-42]],w:.62}];
 function segDist(x,z,a,b){let vx=b[0]-a[0],vz=b[1]-a[1],t=clamp(((x-a[0])*vx+(z-a[1])*vz)/(vx*vx+vz*vz),0,1);return Math.hypot(x-a[0]-vx*t,z-a[1]-vz*t)}
 function cDist(x,z,p){let d=1e5;for(let i=1;i<p.length;i++)d=Math.min(d,segDist(x,z,p[i-1],p[i]));return d}
 function shore(x,z){let s=0;if(z>=87){let w=2.05+.4*Math.sin(z*.077),d=Math.abs(x-streamX(z));s=1-smooth(w+.2,w+2.8,d)}if(z<43&&z>-74){s=Math.max(s,1-smooth(1.15,1.27,pondR(x,z)));for(let c of channels)s=Math.max(s,1-smooth(c.w+.2,c.w+1.7,cDist(x,z,c.p)))}return s}
@@ -431,6 +431,10 @@ let paddyMat=null;
 // 一年之中，田里该长什么。武陵在湘北，水田一季稻，旱地春麦夏粟秋菽冬麦苗，园圃随节令换菜。
 // 每种作物只是一组"怎么长"的参数：株高、行距、叶色，加上穗/丛/藤/阔叶四种长法之一。
 // 加一种作物就是加一行，不是加一个 if。
+const FRUITS={
+ plum   :{name:'李 · 春花秋实',  leaf:['#3d5e40','#4d7448','#5e8951','#779e61'],fall:['#6d7444','#828049','#98894f','#a89052'],bloom:'#f0e6ea',fruit:'#7b5f86'},
+ apricot:{name:'杏 · 春花秋实',  leaf:['#456141','#55764a','#668a55','#7ea068'],fall:['#8a7a3f','#9c8544','#ae8e46','#bb964d'],bloom:'#f4dfe0',fruit:'#dfa04a'},
+ jujube :{name:'枣 · 春花秋实',  leaf:['#4a6338','#5a7743','#6b8a4c','#84a05f'],fall:['#94853c','#a68f43','#b39447','#c09c4e'],bloom:'#e8e4bd',fruit:'#9c3f2c'}};
 const CROPS={
  // 水田
  seedling  :{h:[.12,.20],sx:.30,sz:.27,col:['#8fb46a','#9cc077','#83aa60'],blade:.5},
@@ -448,14 +452,15 @@ const CROPS={
  fallow    :{h:[.10,.22],sx:.62,sz:.58,col:['#8f8a63','#9a9370','#847f5a'],blade:.6,sparse:.55},
  // 园圃
  greens    :{h:[.20,.30],sx:.34,sz:.32,col:['#6d9a54','#79a55f','#628e4b'],bush:1},
- gourd     :{h:[.15,.23],sx:.66,sz:.62,col:['#5f8a4a','#6b9455','#557f42'],vine:1,fruit:'#c8c47c'},
+ gourd     :{h:[.15,.23],sx:.66,sz:.62,col:['#5f8a4a','#6b9455','#557f42'],vine:1,trellis:1,fruit:'#c8c47c'},
+ melon     :{h:[.13,.20],sx:.72,sz:.68,col:['#547f45','#5f8a50','#4b7340'],vine:1,fruit:'#4f6b3c'},
  taro      :{h:[.38,.54],sx:.48,sz:.46,col:['#4f7a52','#5a865c','#457047'],broad:1,leaf:1.25},
  cabbage   :{h:[.22,.32],sx:.42,sz:.40,col:['#5d7d5c','#688868','#547150'],bush:1}};
 // 节令决定田里种什么；同一季里旱地不止一种，按田块位置分。
 const SEASON_CROP={
  spring:{paddy:['seedling'],                      dry:['wheat','rape'],        veg:['greens']},
- summer:{paddy:['rice'],                          dry:['millet','hemp'],       veg:['gourd']},
- autumn:{paddy:['riceRipe','riceRipe','stubble'], dry:['bean','milletRipe'],   veg:['taro']},
+ summer:{paddy:['rice'],                          dry:['millet','hemp'],       veg:['gourd','melon']},
+ autumn:{paddy:['riceRipe','riceRipe','stubble'], dry:['bean','milletRipe'],   veg:['taro','greens']},
  winter:{paddy:['stubble'],                       dry:['wheatling','fallow'],  veg:['cabbage']}};
 function field(x,z,w,d,angle,land='dry'){let y=baseFloor(x,z)+.02;const B=(...p)=>localBox(x,z,angle,...p);
  // 田块自带随机源：换作物不再扰动全局 rng，田外的草木不会跟着重排。
@@ -492,7 +497,7 @@ function field(x,z,w,d,angle,land='dry'){let y=baseFloor(x,z)+.02;const B=(...p)
   if(land!=='paddy')B(ix,y+.021,0,.16,.05,d-.4,pk(['#756d54','#80735b','#9e916d']),'crop');
   for(let iz=-d/2+.35;iz<d/2-.2;iz+=K.sz){if(r()<skip)continue;plant(ix+rr(-.055,.055),iz+rr(-.06,.06))}}
  // 瓜棚：竹架搭在畦上，藤爬上去结瓜。
- if(K.vine)for(let ix=-w/2+1.3;ix<w/2-.9;ix+=2.3){for(let s of [-1,1])B(ix,y+.78,s*(d/2-1.0),.07,1.56,.07,'#9a8f6a','crop');
+ if(K.trellis)for(let ix=-w/2+1.3;ix<w/2-.9;ix+=2.3){for(let s of [-1,1])B(ix,y+.78,s*(d/2-1.0),.07,1.56,.07,'#9a8f6a','crop');
   B(ix,y+1.55,0,.07,.07,d-1.9,'#9a8f6a','crop');
   for(let iz=-d/2+1.2;iz<d/2-1.0;iz+=.85)B(ix+rr(-.10,.10),y+1.49,iz,.24,.09,.28,pk(K.col),'crop',0,0,0,1)}
  // 水田常年蓄水，冬天也留一层冬水；有穗有果的田才值得立稻草人。只用 hash，不碰 rng 序列
@@ -501,18 +506,24 @@ function field(x,z,w,d,angle,land='dry'){let y=baseFloor(x,z)+.02;const B=(...p)
  if((K.ear||K.pod||K.fruit)&&hash(x,z)>.52){const px=(hash(x,z+1)>.5?1:-1)*(w/2-.9),pz=(hash(x+1,z)>.5?1:-1)*(d/2-.9);B(px,y+.85,pz,.06,1.7,.06,'#8c7c5a','crop');B(px,y+1.22,pz,1.0,.05,.06,'#8c7c5a','crop');B(px,y+1.18,pz,.46,.42,.16,'#7a6f78','crop');B(px,y+1.48,pz,.2,.2,.2,'#c9b48f','crop');B(px,y+1.62,pz,.44,.05,.44,'#b5a070','crop',0,.4)}
 }
 function agriculture(){
- // 近渠低处作水田，高处作旱地；宅旁两处园圃。
- field(-29,-17,16,9,-.06,'paddy');field(-32,-34,19,11,.10,'dry');field(-2,-30,17,11,-.06,'paddy');field(-3,-14,16,9,.04,'paddy');field(-2,4,15,11,-.025,'dry');
- field(16,25,19,9,-.07,'dry');field(37,24,13,8,-.11,'paddy');field(-31,-51,17,10,.17,'dry');field(-5,-51,19,9,.035,'paddy');field(39,2,13,6,-.08,'dry');
+ // 水在哪里，田就在哪里：水田贴着池与渠，旱地退到南边高处，园圃靠着人家。
+ field(-29,-15,16,9,-.05,'paddy');field(-3,-15,16,9,.04,'paddy');field(-30,-32,15,8,.09,'paddy');
+ field(-7,-38,16,9,-.06,'paddy');field(15,4,13,9,-.03,'paddy');field(37,24,13,7,-.11,'paddy');
+ field(-31,-52,17,10,.17,'dry');field(-5,-53,19,9,.035,'dry');field(15,-53,16,9,-.04,'dry');
+ field(-2,4,15,11,-.025,'dry');field(16,25,19,8,-.07,'dry');field(39,2,13,6,-.08,'dry');
 
  // Useful sheds, not ceremonial buildings.
  house(19,-18,7.2,5.3,.04,false,0);house(32,-19,6.5,4.8,-.12,false,1);house(40,-33,7.1,5.0,.13,true,2);house(23,-35,7.5,5.2,.06,false,3);house(7,-38,6.3,4.8,.02,true,1);house(29,-49,6.2,4.7,-.08,false,4);house(43,-49,5.8,4.5,.10,true,0);house(53,-21,5.2,4.2,-.15,true,2);house(33,-8,5.6,4.5,-.04,false,3);house(10,-9,4.6,3.8,-.05,true,2);
  fence([[1,-31],[1,-26],[10,-26]],.73);fence([[35,-42],[40,-42],[44,-40]],.79);fence([[51,-35],[55,-35],[55,-26]],.73);fence([[29,-3],[35,-3],[39,-5]],.77);
  // A modest community well, crossbar, rope and a water pail.
  const x=22.7,z=-5.6,y=baseFloor(x,z);for(let i=0;i<12;i++){let a=i/12*TAU;box(x+.74*Math.cos(a),y+.38,z+.74*Math.sin(a),.40,.66,.35,pick(['#92927d','#a6a189','#858b75']),'solid',0,-a)}for(let s of [-1,1])box(x+s*1.15,y+1.3,z,.15,2.6,.16,'#796447');beam([x-1.4,y+2.6,z],[x+1.4,y+2.6,z],.15,'#806f4e');beam([x,y+2.5,z],[x,y+.8,z],.027,'#bcaf85');jar(x+1.25,z+.6,y,.22);
- // Vegetable patch beside one courtyard.
- field(54,-39,5.0,7,.10,'veg');fence([[51.2,-43],[57,-43],[57,-34]],.65);
+ // 园圃贴着门口，提桶就能浇。
+ field(55,-29,5.0,6.0,.10,'veg');fence([[52.2,-32.4],[57.8,-32.4],[57.8,-25.6]],.65);
  field(16,-10,4.4,6.0,-.05,'veg');fence([[13.4,-13.4],[18.6,-13.4],[18.6,-6.6]],.62);
+ field(26,-26,5.0,6.0,.07,'veg');fence([[23.2,-29.3],[28.8,-29.3],[28.8,-22.7]],.64);
+ // 李园在村东高爽处；杏枣三两株散在各家墙外。
+ orchard(35,-11,3,3,3.8,'plum',.12);
+ fruitTree(16.5,-22.2,1.02,'apricot');fruitTree(26.2,-44.8,.95,'jujube');fruitTree(47.4,-45.6,1.05,'apricot');fruitTree(4.2,-43.1,.92,'jujube');fruitTree(50.6,-16.4,1.0,'plum');
 }
 // Peach trees: visibly branching trunks; blossoms are small, open, irregular clusters along twigs.
 // === Botanical geometry: five cupped petals, calyx, buds and open woody crowns ===
@@ -679,6 +690,27 @@ function mulberry(x,z,s=1){
  clumpInto(g,[x+.1*s,y+3.9*s,z],.98*s,leaves,2);
  mulberryMat=mulberryMat||new T.MeshStandardMaterial({vertexColors:true,roughness:.9,side:T.DoubleSide});const m=mesh(geometryFinish(g),mulberryMat);m.name='桑树 · 自然分枝与层叠叶簇';
 }
+function fruitTree(x,z,s=1,kind='plum'){
+ const K=FRUITS[kind],y=height(x,z),g=geometryBuffer(),bark=['#6f5e46','#7b6a50','#655743'];
+ const pal=ezSeason==='winter'?['#6b6450','#79715a','#635d4c']:ezSeason==='autumn'?K.fall:K.leaf,cs=ezSeason==='winter'?.42:1;
+ tubeInto(g,[[x,y-.1,z],[x+.04*s,y+.85*s,z+.03*s],[x+.09*s,y+1.5*s,z]],[.17*s,.125*s,.085*s],bark,10);
+ const tips=[];
+ for(let j=0;j<5;j++){const a=j*TAU/5+rand(-.30,.30),len=rand(.85,1.35)*s,ep=[x+Math.cos(a)*len,y+rand(2.0,2.6)*s,z+Math.sin(a)*len];
+  tubeInto(g,[[x+.06*s,y+1.2*s,z],[mix(x,ep[0],.6),y+1.9*s,mix(z,ep[2],.6)],ep],[.075*s,.048*s,.016*s],bark,8);
+  clumpInto(g,ep,rand(.60,.82)*s*cs,pal,1);tips.push(ep)}
+ clumpInto(g,[x+.07*s,y+2.65*s,z],.70*s*cs,pal,1);
+ fruitMat=fruitMat||new T.MeshStandardMaterial({vertexColors:true,roughness:.9,side:T.DoubleSide});
+ const m=mesh(geometryFinish(g),fruitMat);m.name=K.name;
+ // 春华秋实：花与果都只在该有的节令挂上去。
+ const dot=ezSeason==='spring'?K.bloom:(ezSeason==='summer'||ezSeason==='autumn')?K.fruit:null;
+ if(dot){const r=(ezSeason==='spring'?.13:.17)*s;
+  for(const t of tips)for(let q=0;q<4;q++)box(t[0]+rand(-.58,.58)*s,t[1]+rand(-.42,.28)*s,t[2]+rand(-.58,.58)*s,r,r,r,dot,'leaf')}
+}
+// 果园成行，株距一丈，便于担水与采摘。
+function orchard(x,z,cols,rows,sp,kind,angle=0){const ca=Math.cos(angle),sa=Math.sin(angle);
+ for(let i=0;i<cols;i++)for(let j=0;j<rows;j++){const lx=(i-(cols-1)/2)*sp+rand(-.35,.35),lz=(j-(rows-1)/2)*sp+rand(-.35,.35);
+  fruitTree(x+lx*ca+lz*sa,z-lx*sa+lz*ca,rand(.86,1.10),kind)}
+}
 function leafInto(g,center,direction,length,width,col){
  const d=direction.clone().normalize(),side=V(-d.z,0,d.x).normalize(),base=V(...center),middle=base.clone().addScaledVector(d,length*.48).add(V(0,length*.055,0)),c=color(col);
  const outline=[[0,0],[.2,.66],[.46,1],[.73,.75],[1,0],[.73,-.75],[.46,-1],[.2,-.66]].map(([u,v])=>base.clone().addScaledVector(d,length*u).addScaledVector(side,width*v).add(V(0,-length*.10*u*u,0)));
@@ -693,7 +725,7 @@ function bamboo(x,z,s=1){
 }
 
 // Woodland variants share smooth crowns and small leaf sprays; distant trees keep fewer polygons.
-const woodlandItems=new Map();let woodlandVariants=null,mulberryMat=null;
+const woodlandItems=new Map();let woodlandVariants=null,mulberryMat=null,fruitMat=null;
 const crownSources=new Map();
 function clumpInto(g,p,r,cols,detail){
  const phase=rand(0,TAU),tint=y=>{const t=clamp((y*.5+.5)*(cols.length-1),0,cols.length-1),i=Math.floor(t);return color(cols[i]).clone().lerp(color(cols[Math.min(i+1,cols.length-1)]),t-i)};
