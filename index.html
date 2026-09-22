@@ -93,7 +93,7 @@ body.dusk .header:before{background:radial-gradient(ellipse at 35% 45%,rgba(34,5
 .story-top-restore{position:fixed;right:32px;top:26px;z-index:8;width:36px;height:36px;border-radius:50%;font-size:20px;line-height:1;color:#35473f}
 @media(max-width:760px){.story-top-restore{right:13px;top:88px}}
 @media(max-height:480px){.story-top-restore{top:10px;right:13px}}
-.story-reader{transition:background-color .6s,border-color .6s,box-shadow .6s}.story-reader.quiet{background:transparent;border-color:transparent;box-shadow:none;backdrop-filter:none}.story-reader .story-reader-top,.story-reader .story-action-strip,.story-reader .story-controls,.story-reader .story-progress{transition:opacity .6s,visibility .6s}.story-reader.quiet .story-reader-top,.story-reader.quiet .story-action-strip,.story-reader.quiet .story-controls,.story-reader.quiet .story-progress,.story-reader.quiet .story-footnotes{opacity:0;visibility:hidden;pointer-events:none}.story-reader.quiet .story-original,.story-reader.quiet .story-gloss,.story-reader.quiet .story-footnotes{text-shadow:0 0 6px rgba(247,246,232,.95),0 0 14px rgba(247,246,232,.8),0 1px 2px rgba(247,246,232,.9)}
+.story-reader{transition:background-color .6s,border-color .6s,box-shadow .6s}.story-reader.quiet{background:radial-gradient(128% 118% at 50% 60%,rgba(248,247,235,.66) 0,rgba(248,247,235,.52) 45%,rgba(248,247,235,0) 100%);border-color:transparent;box-shadow:none;backdrop-filter:none}.story-reader .story-reader-top,.story-reader .story-action-strip,.story-reader .story-controls,.story-reader .story-progress{transition:opacity .6s,visibility .6s}.story-reader.quiet .story-reader-top,.story-reader.quiet .story-action-strip,.story-reader.quiet .story-controls,.story-reader.quiet .story-progress,.story-reader.quiet .story-footnotes{opacity:0;visibility:hidden;pointer-events:none}.story-reader.quiet .story-original,.story-reader.quiet .story-gloss,.story-reader.quiet .story-footnotes{text-shadow:0 0 6px rgba(247,246,232,.95),0 0 14px rgba(247,246,232,.8),0 1px 2px rgba(247,246,232,.9)}
 </style>
 </head>
 <body class="intro">
@@ -1414,7 +1414,9 @@ function updateWeather(dt){let t=weatherTarget;if(!t)return;let k=clamp(dt*2,0,1
  for(const wm of [waterMaterial,highWater]){if(!wm)continue;const wu=wm.uniforms;
   wu.dim.value=mix(wu.dim.value,1-t.night*.55,k);wu.skyColor.value.copy(u.bottomColor.value);
   wu.sunDir.value.copy(sun.position).normalize();wu.sunColor.value.copy(sun.color)}
- windows.forEach((w,i)=>w.material.opacity=(i%3===0?.7:0)*nightValue);lights.forEach(l=>l.intensity=nightValue*.9);dimUnlit();
+ // 夜深了灯就该灭：桃源人日出而作，不会家家通宵点着油灯。
+ const lamp=smooth(4.8,5.6,dayHour)*(1-smooth(21.6,22.6,dayHour)),lit=nightValue*lamp;
+ windows.forEach((w,i)=>w.material.opacity=(i%3===0?.7:0)*lit);lights.forEach(l=>l.intensity=lit*.9);if(hallLamp)hallLamp.intensity=3.4*lit;dimUnlit();
  if(sun.position.distanceTo(key.clone().multiplyScalar(185))<.04){weatherChanging=false}
  if(frame%6===0){renderer.shadowMap.needsUpdate=true;reflectionDirty=true}}
 
@@ -1498,7 +1500,7 @@ function wireUI(){if(touch){$('hint-keys').hidden=true;$('hint-keys').previousEl
  window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);reflectionDirty=true});reduceQuery.addEventListener?.('change',e=>{reduced=e.matches;if(reduced){paused=true;updatePauseUI()}animateWorld(simTime)});document.addEventListener('visibilitychange',()=>{if(!audioEnabled)return;if(document.hidden)Object.values(ambientTracks).forEach(track=>track.pause());else Promise.all(Object.values(ambientTracks).map(track=>track.play())).catch(()=>{})});
 }
 // Narrative geometry. No photographs, billboards used as scenery, or network assets.
-let fisherBoat,boatPaddle,dockRope,storyFisher,host,elder,guest,visitors=[],secondHost,countyPeople=[],searchParty=[],meal,secondMeal,trailMarks=[],storySeat,storyCast=[];
+let fisherBoat,boatPaddle,dockRope,storyFisher,host,elder,guest,visitors=[],secondHost,countyPeople=[],searchParty=[],meal,secondMeal,trailMarks=[],storySeat,storyCast=[],hallLamp;
 const storySolids=[];
 function narrativeBeam(group,a,b,width,col,depth=width){
  const av=V(...a),bv=V(...b),m=new T.Mesh(new T.BoxGeometry(width,av.distanceTo(bv),depth),mat(col));m.position.copy(av).add(bv).multiplyScalar(.5);m.quaternion.setFromUnitVectors(V(0,1,0),bv.sub(av).normalize());m.castShadow=true;m.receiveShadow=true;group.add(m);return m;
@@ -1565,7 +1567,7 @@ function narrativeGeometry(){
  beam([22.1,f+.12,-19.55],[21.85,f+1.66,-19.87],.045,'#9b805b');box(22.08,f+.18,-19.52,.33,.07,.13,'#74715e');
 
  for(let [x,z] of [[20.2,-18.8],[21.7,-17.4],[20.4,-16.3],[38.8,-27.0],[40.1,-28.5]]){let y=baseFloor(x,z);box(x,y+.23,z,.58,.10,.40,'#8b7857');for(let side of [-1,1])box(x+side*.20,y+.11,z,.08,.22,.29,'#796a4e')}
- const bounce=new T.PointLight(C('#eee5cd'),3.4,9,1.4);bounce.position.set(18.35,2.5,-15.0);scene.add(bounce);
+ hallLamp=new T.PointLight(C('#eee5cd'),3.4,9,1.4);hallLamp.position.set(18.35,2.5,-15.0);scene.add(hallLamp);
  host=person(20.2,-18.8,'sit',.10,1,'#4f6280',{face:{belly:.06,goatee:true}});elder=person(21.7,-17.4,'sit',-1.6,1,'#8b6a4a',{hair:'#c9c0a4',beard:'#b7b0a0'});guest=person(20.4,-16.3,'sit',PI,1,'#6c7c8f',{work:true,face:{skin:'#b0845f',browW:1.35,brow:.15,stubble:true}});// 与渔人同一张脸
  [host,elder,guest].forEach(g=>{g.visible=false;g.position.y=f-.60});
  storyCast=[host,elder,guest].map(g=>animated.find(a=>a.root===g));
