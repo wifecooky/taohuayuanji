@@ -661,7 +661,14 @@ function shapesMesh(parts,parent){const pp=[],cc=[],nn=[],m=new T.Matrix4(),nm=n
 // Contract kept for story code: root origin at the feet, `upper` pivots at the hips, `arms` pivot at the shoulders.
 function person(x,z,role='chat',angle=0,s=1,clothes='#71847d',opts={}){const root=new T.Group(),floor=height(x,z);root.position.set(x,Math.max(.43,floor)+.02,z);root.rotation.y=angle;root.scale.setScalar(s);scene.add(root);
  root.name='村人 · '+role;root.userData.kind='villager';const body=new T.Group();body.name='body';root.add(body);
- const kid=role==='child',work=opts.work??(role==='farm'||role==='water'),female=!!opts.female,skin='#c9a98a',hair=opts.hair||'#2f2a24',inner='#e8dfc8',belt='#4a3f33',trouser=work?'#4d4a42':'#5a5548',shoe='#3b352e';
+ const kid=role==='child',work=opts.work??(role==='farm'||role==='water'),female=!!opts.female,inner='#e8dfc8',belt='#4a3f33',trouser=work?'#4d4a42':'#5a5548',shoe='#3b352e';
+ // 相貌：hash(x,z) 给每个人一组稳定的个体差异（肤色、颧宽、下颌、眼距、眉势、鼻、口），再按角色叠加，opts.face 可点名覆盖——没有两张一样的脸
+ const h1=hash(x*1.7+3,z*1.3),h2=hash(z*2.1,x*.9+5),h3=hash(x+z+1,x-z),q4=v=>Math.floor(v*4)%4;
+ const F=Object.assign({skin:(female?['#dcc0a4','#d6b89c','#cfb094','#e0c4a8']:work?['#b98d6a','#b08461','#c09270','#a97e5c']:['#c9a98a','#d1b192','#bf9b7b','#c8a284'])[q4(h1)],
+  cheek:kid?1.05:.96+.10*h2,jaw:(kid?1.08:female?.9:.92)+.16*h3,eye:(kid?1.35:1)*(.94+.12*h1),eyeGap:.047+.008*h2,
+  brow:(female?-.06:work?.06:0)+.3*(h3-.5),browW:work?1.25:female?.9:1,nose:(kid?.72:female?.85:1)*(.9+.22*h1),mouth:.92+.16*h2,lip:female?'#b5665a':'#a17764',
+  belly:0,stubble:!!opts.fisher,goatee:false,cap:false},opts.beard?{brow:-.22,skin:'#c9ab8e'}:{},opts.fisher?{skin:'#b0845f',browW:1.35,brow:.15}:{},opts.face||{});
+ const skin=F.skin,hair=opts.hair||['#2f2a24','#231d18','#3b2f24','#1f1c1a'][q4(h3)];
  const HIP=kid?.66:.95,TH=kid?.30:.42,SH=kid?.28:.42,TO=kid?.36:.50,HD=kid?.58:.72,K=kid?.8:1;
  // 腿：大腿前鼓后收、膝盖略窄、小腿肚在上三分之一、脚踝收细；脚是楔形——脚跟圆、脚背隆起、脚尖扁
  const legs=[];for(let side of [-1,1]){const leg=new T.Group();leg.name=side<0?'legL':'legR';leg.position.set(side*.105,HIP,0);body.add(leg);
@@ -672,27 +679,34 @@ function person(x,z,role='chat',angle=0,s=1,clothes='#71847d',opts={}){const roo
  if(role==='sit')shapesMesh([[geoSph(1),0,HIP,.22,clothes,.29,.16,.34],[robeGeo(.22,.27,.45),0,HIP-.22,.40,clothes,1,1,.5]],body);
  else{const h=work||kid?.40:HIP-.14,rb=work||kid?.31:.38;shapesMesh([[loftGeo([[HIP+.02,.235,.19,-.01],[HIP-h*.45,mix(.235,rb,.4),mix(.19,rb*.86,.4),0],[HIP-h,rb,rb*.86,.01]],32,1),0,0,0,clothes]],body)}
  const upper=new T.Group();upper.name='upper';upper.position.set(0,HIP,0);body.add(upper);const NECK=TO+.08,head=new T.Group();head.name='head';head.position.y=NECK;upper.add(head);
- const face=[
-  [geoSph(.011),-.051,HD+.018,.121,'#42362b',1,.63,.55],[geoSph(.011),.051,HD+.018,.121,'#42362b',1,.63,.55],
-  [geoSph(.027),-.052,HD+.045,.119,hair,1,.17,.16,0,0,-.07],[geoSph(.027),.052,HD+.045,.119,hair,1,.17,.16,0,0,.07],
-  [geoSph(.022),0,HD-.016,.132,skin,.68,1.3,.78],[geoSph(.025),0,HD-.066,.119,'#a17764',1,.17,.2],
-  [geoSph(.027),-.126,HD-.006,-.002,skin,.52,1,.7],[geoSph(.027),.126,HD-.006,-.002,skin,.52,1,.7]
+ const eg=F.eyeGap,bz=.07+F.brow,face=[
+  [geoSph(.011*F.eye),-eg,HD+.018,.121,'#42362b',1,.63,.55],[geoSph(.011*F.eye),eg,HD+.018,.121,'#42362b',1,.63,.55],
+  [geoSph(.027),-eg-.001,HD+.045,.119,hair,F.browW,.17,.16,0,0,-bz],[geoSph(.027),eg+.001,HD+.045,.119,hair,F.browW,.17,.16,0,0,bz],
+  [geoSph(.022),0,HD-.016,.132,skin,.68*F.nose,1.3*F.nose,.78],[geoSph(.025),0,HD-.066,.119,F.lip,F.mouth,.17,.2],
+  [geoSph(.027),-.126*F.cheek,HD-.006,-.002,skin,.52,1,.7],[geoSph(.027),.126*F.cheek,HD-.006,-.002,skin,.52,1,.7]
  ];
- const hairParts=[[new T.SphereGeometry(.153,24,12,0,TAU,0,1.51),0,HD+.016,-.014,hair,.97,1.04,1.0],// 发帽要罩住头颅 loft 的额顶与后脑，否则皮肤会从发际顶出来
-[geoSph(.14),0,HD-.005,-.08,hair,.93,1,.49]];
+ if(F.stubble)face.push([geoSph(.09),0,HD-.10,.07,'#9c7d63',.9,.5,.5]);// 胡茬：贴着下颌的一层暗色
+ if(F.goatee)face.push([geoSph(.03),0,HD-.15,.085,hair,.55,1.5,.5]);
+ const hairParts=[[new T.SphereGeometry(.153,24,12,0,TAU,0,1.51),0,HD+.016,-.014,hair,.97*F.cheek,1.04,1.0],// 发帽要罩住头颅 loft 的额顶与后脑，否则皮肤会从发际顶出来
+[geoSph(.14),0,HD-.005,-.08,hair,.93*F.cheek,1,.49]];
  if(kid)hairParts.push([geoSph(.10),0,HD+.09,.068,hair,1.18,.58,.56],[geoSph(.07),-.126,HD-.035,-.024,hair,.38,1.7,.55],[geoSph(.07),.126,HD-.035,-.024,hair,.38,1.7,.55]);
  else if(female)hairParts.push([geoSph(.076),0,HD+.14,-.082,hair,1.22,.88,1],[geoSph(.052),0,HD+.035,-.151,hair],[geoCyl(.007,.007,.23,8),0,HD+.16,-.085,'#a28c62',1,1,1,0,0,1.4]);
  else if(work)hairParts.push([geoCyl(.145,.145,.043),0,HD+.098,-.014,'#655d50',1,1,.94],[geoSph(.063),0,HD+.192,-.039,hair,.85,1,.85]);
+ else if(F.cap)hairParts.push([loftGeo([[HD+.05,.15,.155,-.01],[HD+.13,.145,.152,-.012],[HD+.21,.12,.14,-.02],[HD+.27,.04,.09,-.03]],16),0,0,0,'#2a2830'],[geoCyl(.012,.012,.26,6),0,HD+.235,-.03,'#3d3835',1,1,1,PI/2],[collarGeo([[-.13,HD+.06,0],[-.115,HD-.11,.045],[0,HD-.17,.075],[.115,HD-.11,.045],[.13,HD+.06,0]],.005),0,0,0,'#2a2830']);// 太守：进贤冠式高冠，冠梁前后贯、颏下系缨
  else hairParts.push([geoSph(.07),0,HD+.194,-.035,hair,.78,1,.88],[geoCyl(.008,.008,.23,8),0,HD+.205,-.04,'#b08c5c',1,1,1,0,0,PI/2]);
  if(opts.beard)hairParts.push([geoSph(.075),0,HD-.134,.095,opts.beard,.78,1.4,.36]);
  // 躯干：腰收、胸挺、肩线圆润过渡到颈；女子肩窄
  const shW=female?.245:kid?.235:.265,collar=[[-.115,TO+.005,.10],[0,TO-.11,.193],[.11,TO-.29,.195]],under=[[.12,TO+.002,.105],[.049,TO-.094,.182],[.005,TO-.13,.192]];
- shapesMesh([[loftGeo([[-.01,.235,.19,0],[.2*TO,.215,.17,-.005],[.5*TO,.225,.185,0],[.8*TO,shW,.175,-.01],[.94*TO,shW*.82,.15,-.02],[TO+.02,.105,.10,-.02]],32,.6),0,0,0,clothes],[loftGeo([[.008,.247,.197,0],[.062,.247,.197,0]],32),0,0,0,belt],[collarGeo(collar,.016),0,0,0,inner],[collarGeo(under,.013),0,0,0,inner],[loftGeo([[-.07,.07,.066,-.005],[.03,.058,.055,-.005],[.09,.064,.06,-.005]]),0,TO+.035,0,skin]],upper);
+ shapesMesh([[loftGeo([[-.01,.235,.19,0],[.2*TO,.215,.17,-.005],[.5*TO,.225,.185,0],[.8*TO,shW,.175,-.01],[.94*TO,shW*.82,.15,-.02],[TO+.02,.105,.10,-.02]],32,.6),0,0,0,clothes],[loftGeo([[.008,.247,.197,0],[.062,.247,.197,0]],32),0,0,0,belt],...(F.belly?[[geoSph(1),0,.40*TO,.02,clothes,.235,.20,.185+F.belly]]:[]),[collarGeo(collar,.016),0,0,0,inner],[collarGeo(under,.013),0,0,0,inner],[loftGeo([[-.07,.07,.066,-.005],[.03,.058,.055,-.005],[.09,.064,.06,-.005]]),0,TO+.035,0,skin]],upper);
  // 头：下颌收窄、颧骨最宽、后脑鼓出，不再是一颗球
- shapesMesh([[loftGeo([[HD-.16,.04,.04,.02],[HD-.13,.08,.075,.012],[HD-.07,.116,.119,.004],[HD-.02,.128,.132,0],[HD+.03,.131,.135,-.006],[HD+.09,.12,.128,-.012],[HD+.14,.075,.09,-.015],[HD+.165,.02,.03,-.015]],24),0,0,0,skin],...face,...hairParts].map(q=>{q=q.slice();q[2]-=NECK;return q}),head);
- // 手：扁掌、指尖收拢、拇指外张
+ shapesMesh([[loftGeo([[HD-.16,.04*F.jaw,.04,.02],[HD-.13,.08*F.jaw,.075,.012],[HD-.07,.116*F.cheek,.119,.004],[HD-.02,.128*F.cheek,.132,0],[HD+.03,.131*F.cheek,.135,-.006],[HD+.09,.12*F.cheek,.128,-.012],[HD+.14,.075,.09,-.015],[HD+.165,.02,.03,-.015]],24),0,0,0,skin],...face,...hairParts].map(q=>{q=q.slice();q[2]-=NECK;return q}),head);
+ // 手：楔形手掌，四指分立、各自微曲，拇指两节从腕侧向外下张开——袖口下露出的是一只手，不是一块板
+ const hand=(side,y0)=>{const P=[[loftGeo([[.01,.03,.022,0,2.4],[-.03,.043,.024,.002,2.6],[-.07,.042,.021,.003,2.6],[-.085,.038,.018,0,2.2]],14),0,y0,0,skin],[geoSph(.02),-side*.03,y0-.03,.006,skin,1,1.3,.8]];
+  for(let k=0;k<4;k++){const L=[.048,.056,.052,.042][k],c=.28+.08*k,fx=(k-1.5)*.02*side,fy=y0-.085,fz=.003;
+   P.push([geoSph(.0095),fx,fy,fz,skin,1,.9,.9],[geoCyl(.0085,.0065,L,6),fx,fy-L/2*Math.cos(c),fz+L/2*Math.sin(c),skin,1,1,1,-c,0,(k-1.5)*.05*side],[geoSph(.0065),fx,fy-L*Math.cos(c),fz+L*Math.sin(c),skin])}
+  const tx=-side*.034,ty=y0-.02;P.push([geoSph(.0105),tx,ty,.011,skin],[geoCyl(.0105,.009,.042,7),tx-side*.0062,ty-.020,.011,skin,1,1,1,0,0,-side*.3],[geoSph(.0085),tx-side*.0124,ty-.040,.011,skin],[geoCyl(.0085,.0068,.034,6),tx-side*.0138,ty-.0553,.0184,skin,1,1,1,-.45,0,-side*.08],[geoSph(.0062),tx-side*.0151,ty-.0706,.0258,skin]);return P};
  const arms=[],wide=!work&&!kid;for(let side of [-1,1]){const arm=new T.Group();arm.name=side<0?'armL':'armR';arm.position.set(side*.25,TO-.035,0);upper.add(arm);const len=wide?.42:.38,cuff=wide?.14:.082;
- shapesMesh([[robeGeo(.087,cuff,len),0,-len/2,0,clothes],[geoCyl(cuff,cuff,.027,24),0,-len-.01,0,inner],[loftGeo([[.01,.03,.022,0,2.4],[-.04,.044,.024,.002,2.6],[-.085,.042,.02,.003,2.6],[-.115,.028,.014,0,2.2]],14),0,-len-.02,0,skin],[geoCyl(.011,.008,.055,8),-side*.046,-len-.055,.012,skin,1,1,1,0,0,side*.55]],arm);arm.rotation.z=side*.12;arms.push(arm)}
+ shapesMesh([[robeGeo(.087,cuff,len),0,-len/2,0,clothes],[geoCyl(cuff,cuff,.027,24),0,-len-.01,0,inner],...hand(side,-len-.02)],arm);arm.rotation.z=side*.12;arms.push(arm)}
 
  if(opts.fisher){// 渔人：蓑衣——内衬一层斗篷，外披四层扁草束贴着肩身铺开（第一层盖肩），每根长短、倾角、色泽由 hash 定；斗笠加边箍、顶结、颏绳
   const straw=['#7a6742','#6b5a38','#8c7a4c'],cape=new T.Mesh(new T.CylinderGeometry(.38,.50,.60,20,1,true),new T.MeshStandardMaterial({color:'#4f4128',roughness:1,side:T.DoubleSide}));cape.position.y=TO-.30;cape.castShadow=true;upper.add(cape);
@@ -891,7 +905,7 @@ function narrativeGeometry(){
 
  for(let [x,z] of [[20.2,-18.8],[21.7,-17.4],[20.4,-16.3],[38.8,-27.0],[40.1,-28.5]]){let y=baseFloor(x,z);box(x,y+.23,z,.58,.10,.40,'#8b7857');for(let side of [-1,1])box(x+side*.20,y+.11,z,.08,.22,.29,'#796a4e')}
  const bounce=new T.PointLight(C('#eee5cd'),3.4,9,1.4);bounce.position.set(18.35,2.5,-15.0);scene.add(bounce);
- host=person(20.2,-18.8,'sit',.10,1,'#4f6280');elder=person(21.7,-17.4,'sit',-1.6,1,'#8b6a4a',{hair:'#c9c0a4',beard:'#b7b0a0'});guest=person(20.4,-16.3,'sit',PI,1,'#6c7c8f',{work:true});
+ host=person(20.2,-18.8,'sit',.10,1,'#4f6280',{face:{belly:.06,goatee:true}});elder=person(21.7,-17.4,'sit',-1.6,1,'#8b6a4a',{hair:'#c9c0a4',beard:'#b7b0a0'});guest=person(20.4,-16.3,'sit',PI,1,'#6c7c8f',{work:true,face:{skin:'#b0845f',browW:1.35,brow:.15,stubble:true}});// 与渔人同一张脸
  [host,elder,guest].forEach(g=>{g.visible=false;g.position.y=f-.60});
  storyCast=[host,elder,guest].map(g=>animated.find(a=>a.root===g));
  for(let [x,z,col,fem] of [[16.2,-11.2,'#b0895c'],[22.5,-12.2,'#5d6f8f',true],[23.2,-10.8,'#8a5f52']]){const g=person(x,z,'chat',0,.98,col,{female:fem});g.visible=false;visitors.push(g)}
@@ -903,7 +917,7 @@ function narrativeGeometry(){
  for(let [x,z] of [[-28.5,256.6],[-17.5,256.6]])box(x,1.85,z,.23,2.8,.23,'#716045');
  const label=narrativeLabel('郡 舍',2.0,.50);label.position.set(-23,3.20,255.065);scene.add(label);
  const desk=new T.Group();desk.position.set(-23,.5,258);scene.add(desk);partsMesh([[0,.75,0,1.85,.12,.85,'#8b7453'],[-.68,.37,0,.10,.74,.62,'#705e45'],[.68,.37,0,.10,.74,.62,'#705e45'],[-.20,.83,0,.72,.035,.38,'#bdb390'],[.56,.83,.05,.18,.05,.16,'#706851']],desk);
- for(let [x,z,col,a] of [[-23,256.8,'#3d4460',0],[-26.6,258.6,'#a08a62',.70],[-20,257.5,'#6b7a6a',-.9]]){let g=person(x,z,'chat',a,1,col);g.visible=false;countyPeople.push(g)}
+ for(let [x,z,col,a,f] of [[-23,256.8,'#3d4460',0,{cap:true,goatee:true,belly:.08}],[-26.6,258.6,'#a08a62',.70],[-20,257.5,'#6b7a6a',-.9]]){let g=person(x,z,'chat',a,1,col,{face:f});g.visible=false;countyPeople.push(g)}
  mulberry(-34,258,.95);mulberry(-13,258,1.1);fence([[-30,253],[-30,258],[-29,260]],.85);
  for(let z of [110,138,165]){let x=streamX(z)-3.15,y=height(x,z);box(x,y+.33,z,.73,.65,.72,'#939c87','rock');const mark=new T.Group();mark.position.set(x,y+.65,z+.04);scene.add(mark);narrativeBeam(mark,[-.21,.006,-.10],[.16,.009,.13],.035,'#d6cbb0');narrativeBeam(mark,[-.11,.014,-.18],[.10,.014,.19],.028,'#d6cbb0');mark.visible=false;trailMarks.push(mark)}
  for(let [z,col] of [[147,'#5f6f86'],[151,'#8a7048']]){let g=person(streamX(z)-3.7,z,'chat',PI,1,col);g.visible=false;searchParty.push(g)}
