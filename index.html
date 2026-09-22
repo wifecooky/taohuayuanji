@@ -944,9 +944,12 @@ function vegetation(){
 // 树线：太高太陡不长树，山坳背风处成林；石涧里只有水。
 function treeFit(x,z,h){
  if(fallsBed(z)!==null&&Math.abs(x-fallsX(z))<7.2)return 0;
- const g=Math.hypot(height(x+1.2,z)-height(x-1.2,z),height(x,z+1.2)-height(x,z-1.2))/2.4;
+ const gx=(height(x+1.2,z)-height(x-1.2,z))/2.4,gz=(height(x,z+1.2)-height(x,z-1.2))/2.4,g=Math.hypot(gx,gz);
  const hollow=(height(x+8,z)+height(x-8,z)+height(x,z+8)+height(x,z-8))/4-h;
- return smooth(1.5,4.6,h)*(1-smooth(34,50,h))*(1-smooth(.85,1.7,g)*.85)*clamp(.78+.18*hollow,.26,1.15);
+ // 日照：太阳在南（-x）。地势向北抬升（gx>0）的坡面正对日头，是阳坡，林木厚；
+ // 背面的阴坡终年少光，稀疏。坡越缓越无所谓朝向，所以用坡度加权。
+ const sun=clamp(1+gx/Math.max(.3,g)*smooth(.10,.62,g)*.46,.46,1.44);
+ return smooth(1.5,4.6,h)*(1-smooth(34,50,h))*(1-smooth(.85,1.7,g)*.85)*clamp(.78+.18*hollow,.26,1.15)*sun;
 }
 function outerBanks(){
  const bush=['#7f9a62','#8aa46b','#6f8d5a','#93a874'],stone=['#7e9085','#82948a','#6f877c'];
