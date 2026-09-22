@@ -1622,7 +1622,8 @@ function mountainHaze(){const N=176;
     float d=length(vec2(q.x,q.y*1.18))*2./max(wob,.40);
     float a=1.-smoothstep(0.,1.,clamp(d,0.,1.));
     gl_FragColor=vec4(tint,a*a*strength);
-    #include <fog_fragment>}`
+    #include <fog_fragment>
+   }`
  });
  hazeMesh=new T.InstancedMesh(geo,hazeMat,N);
  hazeMesh.frustumCulled=false;scene.add(hazeMesh);
