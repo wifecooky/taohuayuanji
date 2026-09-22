@@ -1205,8 +1205,8 @@ function animal(x,z,type='hen',angle=0){const g=new T.Group();g.rotation.y=angle
  if(QUAD[type]){g.position.set(x,height(x,z)+.02,z);quadruped(type,g,rec)}
  else{g.position.set(x,height(x,z)+.02,z);fowl(g,rec)}
  animated.push(rec);return g}
-function life(){person(-25,-16,'farm',.4,1,'#5b6b8a');person(-3,3,'farm',-.3,1,'#a67b4e');person(21,-10,'chat',1.1,1,'#4c5f7d');person(22.7,-10.7,'chat',-1.1,.95,'#c7b48f',{female:true});person(-12.7,9.1,'water',-1.9,1,'#9a7d8a',{female:true});person(32.1,-3.8,'sit',.25,1,'#7d5a40',{hair:'#c9c0a4',beard:'#b7b0a0'});person(21.7,-5.1,'water',-1,.97,'#5d6f8f',{female:true});person(25,3,'child',-.6,1,'#c26d5a',{route:[[27.5,3.6],[25.6,5.5],[23.7,3.6],[25.6,1.7]],loop:true,speed:2.3});person(26.1,4,'child',1.1,.95,'#d9c9a2',{route:[[27.5,3.6],[25.6,5.5],[23.7,3.6],[25.6,1.7]],loop:true,speed:2.3,u0:.45});person(45,-30,'chat',2.7,1,'#8a6b52');person(streamX(96)-3.7,96,'chat',-.25,.97,'#6c7c8f',{work:true,fisher:true,shift:[0,24]});
- person(7,15,'chat',0,1,'#5e6f86',{route:[[6.6,15.2],[12.5,8.6],[18.6,2.3],[20.1,-8.2]],speed:1.15,phase:1.3});person(-9,-5,'chat',0,.96,'#a8896a',{female:true,route:[[-9,-4.6],[6,-1.6],[17,-3.6],[30,-4.6]],speed:1.0,u0:.5,phase:4.1});
+function life(){person(-25.3,-9.7,'farm',-2.53,1,'#5b6b8a');person(-2.85,-2.12,'farm',.14,1,'#a67b4e');person(21,-10,'chat',1.1,1,'#4c5f7d');person(22.7,-10.7,'chat',-1.1,.95,'#c7b48f',{female:true});person(-12.7,9.1,'water',-1.9,1,'#9a7d8a',{female:true});person(32.1,-3.8,'sit',.25,1,'#7d5a40',{hair:'#c9c0a4',beard:'#b7b0a0'});person(21.7,-5.1,'water',-1,.97,'#5d6f8f',{female:true});person(25,3,'child',-.6,1,'#c26d5a',{route:[[27.5,3.6],[25.6,5.5],[23.7,3.6],[25.6,1.7]],loop:true,speed:2.3});person(26.1,4,'child',1.1,.95,'#d9c9a2',{route:[[27.5,3.6],[25.6,5.5],[23.7,3.6],[25.6,1.7]],loop:true,speed:2.3,u0:.45});person(45,-30,'chat',2.7,1,'#8a6b52');person(streamX(96)-3.7,96,'chat',-.25,.97,'#6c7c8f',{work:true,fisher:true,shift:[0,24]});
+ person(7,15,'chat',0,1,'#5e6f86',{route:[[6.6,15.2],[13.6,12.4],[22.8,9.6],[23.8,3],[21.6,-2.6],[20.1,-8.2]],speed:1.15,phase:1.3});person(-9,-5,'chat',0,.96,'#a8896a',{female:true,route:[[-9,-4.6],[6,-2.2],[17,-3.6],[30,-4.6]],speed:1.0,u0:.5,phase:4.1});
  animal(29,1,'dog',1.5);for(let p of [[35,-4],[36,-3],[37,-4.8],[16,-4.7],[15,-5.5]])animal(...p,'hen',rand(0,TAU));
  // A low bench and some everyday farming tools.
  box(32.3,.67,-4.1,2.4,.16,.53,'#8e7f60');for(let x of [31.4,33.2])box(x,.42,-4.1,.16,.4,.40,'#6e634f');beam([40.8,.55,-29.9],[40.4,2.10,-30.1],.045,'#9c855b','detail');box(40.8,.58,-29.9,.55,.08,.12,'#82755c','detail');
@@ -1639,7 +1639,7 @@ function applyNarrativeWorld(i,u){
  searchParty.forEach(g=>{g.visible=on&&(i===17||i===18);pose(g.userData.anim,on&&i===17?'walk':'idle')});
  meal.userData.food.visible=indoors&&(i>9||u>.57);secondMeal.userData.food.visible=on&&i>=12;
  story.marks=i>15?3:i===15?[.24,.53,.80].filter(v=>u>v).length:0;trailMarks.forEach((g,j)=>g.visible=on&&((i===15&&u>[.24,.53,.80][j])||i>15));
- if(storyFisher){storyFisher.visible=!on||i===3||i===8||i===13||i===16;if(!on||i===3){storyFisher.position.set(streamX(96)-3.7,Math.max(.43,height(streamX(96)-3.7,96))+.1,96);storyFisher.rotation.y=2.5}else if(i===8){storyFisher.position.set(18.1,.55,-9.3);faceToward(storyFisher,21,-10)}else if(i===13){storyFisher.position.set(36.2,.55,-27.6);faceToward(storyFisher,38.8,-30)}else if(i===16){storyFisher.position.set(-24.3,.55,260);faceToward(storyFisher,-23,256.8)}}
+ if(storyFisher){storyFisher.visible=!on||i===3||i===8||i===13||i===16;if(!on||i===3){storyFisher.position.set(streamX(96)-3.7,Math.max(.43,height(streamX(96)-3.7,96))+.1,96);storyFisher.rotation.y=2.5}else if(i===8){storyFisher.position.set(19.8,.55,-9);faceToward(storyFisher,21,-10)}else if(i===13){storyFisher.position.set(36.2,.55,-27.6);faceToward(storyFisher,38.8,-30)}else if(i===16){storyFisher.position.set(-24.3,.55,260);faceToward(storyFisher,-23,256.8)}}
  if(on&&(i<3||i===15||i===17)){let z=i===0?mix(225,205,u):i===1?mix(205,158,u):i===2?mix(158,96,u):i===15?mix(96,177,smooth(.07,1,u)):mix(167,125,u);fisherBoat.position.set(streamX(z)+.35,.07,z);fisherBoat.rotation.y=Math.atan2(streamX(z-1)-streamX(z+1),-2);if(i===15)fisherBoat.rotation.y+=PI;dockRope.visible=false;boatPaddle.rotation.y=.055*Math.sin(story.elapsed*.9)}else dockBoat();
  if(on&&i===17){const z=mix(167,125,u);searchParty.forEach((g,k)=>{const zz=z-4+k*2.9;g.position.set(streamX(zz)-3.7,height(streamX(zz)-3.7,zz)+.1,zz);g.rotation.y=PI})}
  if(on&&i===18)searchParty.forEach((g,k)=>{const zz=125+k*2;g.position.set(streamX(zz)-3.7,height(streamX(zz)-3.7,zz)+.1,zz);g.rotation.y=-1.6})
@@ -1761,13 +1761,13 @@ function prepareStory(){
  const cave=[];for(let z=85.9;z>=48;z-=1)cave.push([tunnelX(z),caveFloor(z)+1.61,z]);cave.push([-43,2.01,48]);storyCurves[4]=rail(cave,null,{cave:true});
  storyCurves[5]=rail([[-43,2.01,48],[-42,2.2,44],[-40.8,2.2,39],[-36,2.15,34],[-31,2.17,28]],[12,2.2,-20]);
  storyCurves[6]=rail([[-31,2.17,28],[-25,2.15,25],[-19,2.15,22],[-13,2.2,20]],[[12,2.2,-20],[6,1,-15],[13,1,-8],[20,1.7,-4]]);
- storyCurves[7]=rail([[-13,2.2,20],[2,2.2,16.8],[7,2.25,15],[15,2.25,8],[24,2.3,6]],[[10,1,-12],[20,1.5,-5],[29,1.4,-1],[31,1.5,-3.8],[29,1.6,1]]);
- storyCurves[8]=rail([[24,2.3,6],[20,2.25,3],[18,2.25,0],[18,2.25,-6]],[21.5,1.7,-10]);
- storyCurves[9]=rail([[18,2.25,-6],[17.7,2.12,-11.2],[18.3,2.08,-13.5],[18.3,2.08,-16.1]],[[21.5,1.7,-10],[18.3,1.8,-15.5],[19,1.7,-17],[20.55,1.6,-17.55]],{inside:true});
+ storyCurves[7]=rail([[-13,2.2,20],[2,2.2,16.8],[7,2.25,15],[14,2.25,12.2],[22.8,2.3,9.8],[24,2.3,6]],[[10,1,-12],[20,1.5,-5],[29,1.4,-1],[31,1.5,-3.8],[29,1.6,1]]);
+ storyCurves[8]=rail([[24,2.3,6],[23.6,2.28,2.6],[22,2.26,-1.6],[20,2.25,-4.4],[19.2,2.25,-6]],[21.5,1.7,-10]);
+ storyCurves[9]=rail([[19.2,2.25,-6],[19.9,2.12,-8.8],[20.1,2.08,-11.8],[19.4,2.08,-14.4],[18.3,2.08,-16.1]],[[21.5,1.7,-10],[18.3,1.8,-15.5],[19,1.7,-17],[20.55,1.6,-17.55]],{inside:true});
  storyCurves[10]=rail([[18.3,2.08,-16.1],[18.5,2.06,-16.5],[18.65,2.02,-17]],[21.7,1.65,-17.4],{inside:true,fov:57});
  storyCurves[11]=rail([[18.65,2.02,-17],[18.3,2.04,-16.8],[18,2.05,-16.5]],[20.2,1.55,-18.8],{inside:true,fov:57});
- storyCurves[12]=rail([[18,2.05,-16.5],[18.3,2.08,-15.6],[18.3,2.1,-13.2],[18.3,2.3,-11.8],[25.8,2.6,-11.5],[27,2.6,-17],[27,2.6,-24.5],[33,3.2,-26],[34,3.2,-26]],null,{inside:true});
- storyCurves[13]=rail([[34,3.2,-26],[27,2.7,-24.5],[27,2.6,-12],[26,2.7,-.5],[18,2.8,9],[7,3,15],[-13,3.3,20]],null);
+ storyCurves[12]=rail([[18,2.05,-16.5],[18.3,2.08,-15.6],[19.2,2.1,-14],[19.9,2.3,-12.2],[25.8,2.6,-11.5],[27,2.6,-17],[27.6,2.6,-21],[29.4,2.8,-22.5],[31.6,3.1,-24.6],[34,3.2,-26]],null,{inside:true});
+ storyCurves[13]=rail([[34,3.2,-26],[31.6,3.1,-24.6],[29.4,2.8,-22.5],[27.6,2.7,-21],[27,2.65,-16],[27,2.6,-12],[26,2.7,-.5],[25,2.75,5],[23.6,2.78,9.6],[20,2.8,11.8],[13,2.9,13.6],[7,3,15],[-13,3.3,20]],null);
  const back=[[-13,3.3,20],[-31,2.2,28],[-40,2.12,40],[-43,2.05,47]];for(let z=49;z<=85;z+=1)back.push([tunnelX(z),caveFloor(z)+1.61,z]);back.push([-43.5,2.11,89],eye(streamX(94)-3.7,94,1.65));storyCurves[14]=rail(back,null,{cave:true});
  storyCurves[16]=rail([[-30,4.2,269],[-28,3.5,266],[-25.5,2.75,263]],[-23,1.9,257.5]);
  storyCurves[18]=rail([[streamX(125)+.35,2.35,125.9],eye(streamX(125)-3.7,125),eye(-52.5,124),eye(-54.8,122.5),eye(-55.8,120.5)],null,{terrain:true});
