@@ -183,8 +183,12 @@ const buckets=new Map(),animated=[],detailMeshes=[],waterMeshes=[],windows=[],li
 const boxGeo=T?new T.BoxGeometry(1,1,1):null;let standard,foliageMat,cropMat,stoneMat;
 // Wind lives in the vertex shader (Cove-style): aWind = root-to-tip weight baked per vertex, aSway = per-instance weight.
 const windTime={value:0};function windAttr(geo){if(!geo.boundingBox)geo.computeBoundingBox();const p=geo.attributes.position,b=geo.boundingBox,a=new Float32Array(p.count);for(let i=0;i<p.count;i++)a[i]=(p.getY(i)-b.min.y)/(b.max.y-b.min.y);geo.setAttribute('aWind',new T.BufferAttribute(a,1));return geo}
+function shaderHook(mat,key,fn){const prev=mat.onBeforeCompile,pk=mat.customProgramCacheKey;mat.onBeforeCompile=sh=>{if(prev)prev(sh);fn(sh)};mat.customProgramCacheKey=()=>pk.call(mat)+key;return mat}
 function windy(mat,weight,ax,az){const code=`vec3 wp=(modelMatrix*mvPosition).xyz;float wph=windTime*1.5+wp.x*.32+wp.z*.21;float wg=sin(wph)+.5*sin(wph*2.3+wp.z*.6)+.3*sin(windTime*4.3+wp.x*1.1);mvPosition.xz+=vec2(${ax},${az})*wg*(${weight});`;
- const prev=mat.onBeforeCompile;mat.onBeforeCompile=sh=>{if(prev)prev(sh);sh.uniforms.windTime=windTime;sh.vertexShader='uniform float windTime;attribute float aWind;attribute float aSway;\n'+sh.vertexShader.replace('#include <project_vertex>',T.ShaderChunk.project_vertex.replace('mvPosition = modelViewMatrix * mvPosition;',code+'mvPosition = modelViewMatrix * mvPosition;'))};mat.customProgramCacheKey=()=>code;return mat}
+ return shaderHook(mat,code,sh=>{sh.uniforms.windTime=windTime;sh.vertexShader='uniform float windTime;attribute float aWind;attribute float aSway;\n'+sh.vertexShader.replace('#include <project_vertex>',T.ShaderChunk.project_vertex.replace('mvPosition = modelViewMatrix * mvPosition;',code+'mvPosition = modelViewMatrix * mvPosition;'))})}
+// Thin leaves and petals glow when the sun is behind them: a per-light transmission term added right after the sun's shadowed RE_Direct.
+function backlit(mat,tint){const code=`{float bl=pow(max(0.,dot(geometry.viewDir,-directLight.direction)),3.)*(.35+.65*abs(dot(geometry.normal,directLight.direction)));reflectedLight.directDiffuse+=directLight.color*diffuseColor.rgb*vec3(${tint})*bl;}`;
+ return shaderHook(mat,code,sh=>{sh.fragmentShader=sh.fragmentShader.replace('#include <lights_fragment_begin>',T.ShaderChunk.lights_fragment_begin.replace(/(getDirectionalLightInfo[\s\S]*?RE_Direct\( directLight, geometry, material, reflectedLight \);)/,'$1'+code))})}
 if(boxGeo)windAttr(boxGeo);
 const matrix=T?new T.Matrix4():null,dummy=T?new T.Object3D():null;
 const colorCache=new Map();function color(h){if(!colorCache.has(h))colorCache.set(h,C(h));return colorCache.get(h)}
@@ -377,8 +381,8 @@ function petalGeometry(){
 function leafGeometry(){const g=geometryBuffer();for(let i=0;i<4;i++){const t=i/4,u=(i+1)/4,w=Math.sin(t*PI)*.15,ww=Math.sin(u*PI)*.15;for(let sign of [-1,1]){triangle(g,[0,.045*Math.sin(t*PI),t],[w*sign,0,t],[ww*sign,0,u],'#839e59');triangle(g,[0,.045*Math.sin(t*PI),t],[ww*sign,0,u],[0,.045*Math.sin(u*PI),u],'#a4b277')}}return geometryFinish(g)}
 function distantBlossomGeometry(){const g=geometryBuffer();for(let k=0;k<5;k++){const a=k*TAU/5,ca=Math.cos(a),sa=Math.sin(a),p=v=>[v[0]*ca+v[2]*sa,v[1],v[2]*ca-v[0]*sa];triangle(g,p([0,.08,.07]),p([-.4,.26,.71]),p([.05,.32,1]),'#f1b8c8');triangle(g,p([0,.08,.07]),p([.05,.32,1]),p([.4,.26,.71]),'#ffdae2')}return geometryFinish(g)}
 function initBotany(){if(botanicalGeometry)return;botanicalGeometry={hi:blossomGeometry(true),mid:blossomGeometry(false),lo:distantBlossomGeometry(),petal:petalGeometry(),bud:new T.SphereGeometry(1,6,4),leaf:leafGeometry()};
- bloomHiMat=windy(new T.MeshStandardMaterial({vertexColors:true,roughness:.82,side:T.DoubleSide,emissive:C('#f4b5c6'),emissiveIntensity:.14}),'1.',.02,.012);bloomLoMat=bloomHiMat;
- barkMaterial=new T.MeshStandardMaterial({vertexColors:true,roughness:1});leafMaterial=windy(new T.MeshStandardMaterial({vertexColors:true,roughness:.93,side:T.DoubleSide}),'1.',.02,.012);
+ bloomHiMat=backlit(windy(new T.MeshStandardMaterial({vertexColors:true,roughness:.82,side:T.DoubleSide,emissive:C('#f4b5c6'),emissiveIntensity:.14}),'1.',.02,.012),'.8,.55,.62');bloomLoMat=bloomHiMat;
+ barkMaterial=new T.MeshStandardMaterial({vertexColors:true,roughness:1});leafMaterial=backlit(windy(new T.MeshStandardMaterial({vertexColors:true,roughness:.93,side:T.DoubleSide}),'1.',.02,.012),'.6,.95,.4');
 }
 function botanicalInstances(geo,mat,items){
  const bounded=new T.BufferGeometry();bounded.index=geo.index;bounded.attributes=geo.attributes;
@@ -571,7 +575,7 @@ function ezMaterial(tex){const img=tex.image,w=img.width,h=img.height,c=document
  for(let i=0;i<p.length;i+=4){const v=p[i+3]<20?245:Math.min(255,Math.round(lum(i)/sum*n*245));p[i]=p[i+1]=p[i+2]=v}x.putImageData(d,0,8);
  const t=new T.CanvasTexture(c);t.encoding=T.sRGBEncoding;const m=new T.MeshStandardMaterial({map:t,vertexColors:true,alphaTest:.35,side:T.DoubleSide,roughness:.9});
  m.onBeforeCompile=sh=>{sh.fragmentShader=sh.fragmentShader.replace('#include <normal_fragment_begin>',T.ShaderChunk.normal_fragment_begin.replace('normal = normal * faceDirection;',''))};
- m.userData.depth=new T.MeshDepthMaterial({depthPacking:T.RGBADepthPacking,map:t,alphaTest:.35});m.userData.v=[h/(h+8),(h+4)/(h+8)];return windy(m,'float(uv.y<'+h/(h+8)+')',.045,.02)}
+ m.userData.depth=new T.MeshDepthMaterial({depthPacking:T.RGBADepthPacking,map:t,alphaTest:.35});m.userData.v=[h/(h+8),(h+4)/(h+8)];return backlit(windy(m,'float(uv.y<'+h/(h+8)+')',.045,.02),'.7,1.1,.4')}
 function ezGeometry(t,seed,mat,H,pal){const bg=t.branchesMesh.geometry,lg=t.leavesMesh.geometry,pos=[],col=[],uv=[],c=C('#ffffff'),[kv,bv]=mat.userData.v;
  const put=(g,i,u,v)=>{const p=g.attributes.position;pos.push(p.getX(i),p.getY(i),p.getZ(i));col.push(c.r,c.g,c.b);uv.push(u,v)};
  const bi=bg.index.array;for(let i=0;i<bi.length;i+=3){c.copy(color(ezBark[Math.floor(hash(i,seed)*ezBark.length)]));for(let k=0;k<3;k++)put(bg,bi[i+k],.5,bv)}
