@@ -494,7 +494,7 @@ function house(x,z,w,d,a=0,thatched=false,variant=0){houseBoxes.push([x,z,w,d,a]
  return{x,z,w,d,a};
 }
 function jar(x,z,y,s=.45){const g=new T.CylinderGeometry(s*.68,s*.76,s*1.6,8,1),m=mesh(g,mat('#7c735c'),x,y+s*.8,z);mesh(new T.CylinderGeometry(s*.45,s*.45,.07,8),mat('#3b463d'),x,y+s*1.62,z,false);return m}
-function fence(points,h=.82){for(let i=1;i<points.length;i++){let a=points[i-1],b=points[i],len=Math.hypot(b[0]-a[0],b[1]-a[1]),n=Math.ceil(len/.65);for(let j=0;j<=n;j++){let t=j/n,x=mix(a[0],b[0],t),z=mix(a[1],b[1],t),y=baseFloor(x,z);box(x,y+h*.5,z,.07,h+rand(-.08,.12),.07,pick(['#89916a','#979674','#7c855f']),'solid',0,0,rand(-.04,.04))}for(let yy of [.25,.65])beam([a[0],baseFloor(...a)+yy*h/.82,a[1]],[b[0],baseFloor(...b)+yy*h/.82,b[1]],.065,'#9c9b77')}}
+function fence(points,h=.82){fenceLines.push(points);for(let i=1;i<points.length;i++){let a=points[i-1],b=points[i],len=Math.hypot(b[0]-a[0],b[1]-a[1]),n=Math.ceil(len/.65);for(let j=0;j<=n;j++){let t=j/n,x=mix(a[0],b[0],t),z=mix(a[1],b[1],t),y=baseFloor(x,z);box(x,y+h*.5,z,.07,h+rand(-.08,.12),.07,pick(['#89916a','#979674','#7c855f']),'solid',0,0,rand(-.04,.04))}for(let yy of [.25,.65])beam([a[0],baseFloor(...a)+yy*h/.82,a[1]],[b[0],baseFloor(...b)+yy*h/.82,b[1]],.065,'#9c9b77')}}
 let paddyMat=null;
 // 一年之中，田里该长什么。武陵在湘北，水田一季稻，旱地春麦夏粟秋菽冬麦苗，园圃随节令换菜。
 // 每种作物只是一组"怎么长"的参数：株高、行距、叶色，加上穗/丛/藤/阔叶四种长法之一。
@@ -621,6 +621,49 @@ function agriculture(){
  orchard(35,-11,3,3,3.8,'plum',.12);
  pens();
  fruitTree(16.5,-22.2,1.02,'apricot');fruitTree(26.2,-44.8,.95,'jujube');fruitTree(47.4,-45.6,1.05,'apricot');fruitTree(4.2,-43.1,.92,'jujube');fruitTree(50.6,-16.4,1.0,'plum');
+}
+// 自给自足之外还有余裕，才顾得上好看：墙根一畦花，篱下一带，阶前两口瓦罐。
+// 全用 hash() 定位，不动随机数流，村庄其余部分一寸没挪。
+const fenceLines=[];
+const YARD={
+ spring:{f:['#e4677f','#f0899a','#ffd9e2','#f3c14b','#f7e08a','#c9749f'],leaf:['#6f8a52','#7c9a5e','#87a468'],n:1},
+ summer:{f:['#d8453f','#e8663c','#f2a03c','#c96d9b','#f6e5c8','#e5544f'],leaf:['#5c8352','#6b9059','#789c63'],n:1},
+ autumn:{f:['#e0a828','#eec24a','#c9553a','#d98a3c','#efd98f','#b8743a'],leaf:['#7f8a4b','#8c9455','#6f7c44'],n:.82},
+ winter:{f:['#c0503f','#cf6a4a','#ddd6c4','#e8e4d8'],leaf:['#5d6b4e','#68745a','#73805f'],n:.34}};
+// 一丛：几片叶子撑起来，顶上两三朵。
+function sprig(g,x,y,z,s,i,S){
+ const lc=S.leaf[Math.floor(hash(i,1.1)*S.leaf.length)];
+ for(let k=0;k<6;k++){const a=hash(i,2.3+k*.7)*TAU,len=s*(.55+hash(i,3.7+k*.9)*.7),w=s*.14,ca=Math.cos(a),sa=Math.sin(a);
+  triangle(g,[x-sa*w,y,z+ca*w],[x+sa*w,y,z-ca*w],[x+ca*len*.42,y+len,z+sa*len*.42],lc)}
+ const n=2+Math.floor(hash(i,8.9)*3.4);
+ for(let k=0;k<n;k++){const a=hash(i,9.3+k*1.3)*TAU,r=s*.26*hash(i,10.1+k*1.1),h=y+s*(.52+hash(i,11.3+k*.8)*.55);
+  octaInto(g,[x+Math.cos(a)*r,h,z+Math.sin(a)*r],s*.155,S.f[Math.floor(hash(i,12.7+k*1.7)*S.f.length)])}
+}
+function dooryard(){
+ const S=YARD[ezSeason]||YARD.spring,g=geometryBuffer();let i=0;
+ // 墙根：沿两面长墙各铺一畦，离墙半米，避开屋角。
+ for(const [ox,oz,w,d,a] of houseBoxes){
+  const ca=Math.cos(a),sa=Math.sin(a),n=Math.max(3,Math.round(w/.42));
+  for(const side of [-1,1])for(let j=0;j<=n;j++,i++){
+   if(hash(i,17.3)>S.n*.92)continue;
+   const lx=(j/n-.5)*w*.86+(hash(i,18.1)-.5)*.22,lz=side*(d/2+.42+hash(i,19.7)*.30);
+   const x=ox+lx*ca+lz*sa,z=oz-lx*sa+lz*ca;
+   sprig(g,x,baseFloor(x,z)+.01,z,.62+hash(i,20.3)*.40,i,S)}
+ }
+ // 篱下：草花贴着篱笆根长，间或断开，不是一条绿线。
+ for(const pts of fenceLines)for(let k=1;k<pts.length;k++){
+  const a=pts[k-1],b=pts[k],len=Math.hypot(b[0]-a[0],b[1]-a[1]),n=Math.ceil(len/.45);
+  for(let j=0;j<=n;j++,i++){
+   if(hash(i,21.1)>S.n*.72*(Math.sin(j*.9+k*2.1)*.5+.62))continue;
+   const t=j/n,side=hash(i,22.3)<.5?-1:1,dx=(b[0]-a[0])/len,dz=(b[1]-a[1])/len;
+   const x=mix(a[0],b[0],t)-dz*side*(.30+hash(i,23.7)*.22),z=mix(a[1],b[1],t)+dx*side*(.30+hash(i,23.7)*.22);
+   sprig(g,x,baseFloor(x,z)+.01,z,.50+hash(i,24.9)*.34,i,S)}
+ }
+ const m=mesh(geometryFinish(g),new T.MeshStandardMaterial({vertexColors:true,roughness:.9,side:T.DoubleSide}));m.name='墙根与篱下的花';
+ // 阶前的瓦罐：栽一丛高些的，两户门口各一对。
+ const pots=[[21.4,-14.6],[23.6,-14.2],[34.2,-15.6],[36.0,-15.2],[9.2,-34.8],[11.0,-34.4],[41.6,-29.6],[43.4,-29.2]],pg=geometryBuffer();
+ for(let k=0;k<pots.length;k++){const [x,z]=pots[k],y=baseFloor(x,z);jar(x,z,y,.26);sprig(pg,x,y+.44,z,.62+hash(k,25.1)*.22,300+k,S)}
+ const pm=mesh(geometryFinish(pg),new T.MeshStandardMaterial({vertexColors:true,roughness:.9,side:T.DoubleSide}));pm.name='阶前瓦罐花';
 }
 // Peach trees: visibly branching trunks; blossoms are small, open, irregular clusters along twigs.
 // === Botanical geometry: five cupped petals, calyx, buds and open woody crowns ===
@@ -1796,7 +1839,7 @@ function validateStoryRoutes(samples=120){
 
 let lastTime=0;function renderLoop(ms){if(!ready)return;requestAnimationFrame(renderLoop);let dt=Math.min(.07,(ms-lastTime)/1000||.016);lastTime=ms;if(document.hidden)return;frame++;if(story.active)updateStory(dt);else if(tour.active)updateTour(dt);else updateObserver(dt);if(!paused&&!(story.active&&story.paused)){simTime+=dt;animateWorld(simTime)}if(weatherChanging&&!(story.active&&story.paused))updateWeather(dt);sky.material.uniforms.time.value=simTime;updatePrecip(dt,simTime);updateBlossomWeather(simTime);updateAmbient(dt);for(let m of detailMeshes){let limit=m.userData.cat==='detail'?(quality==='high'?112:72):(quality==='high'?190:135);m.visible=Math.hypot(camera.position.x-(m.position.x+21),camera.position.z-(m.position.z+21))<limit}if(frame%22===0&&!paused&&!(story.active&&story.paused))renderer.shadowMap.needsUpdate=true;if(camera.position.distanceTo(lastReflectCamera)>.35)reflectionDirty=true;if(frame%5===0||reflectionDirty&&frame<3)renderReflection();renderer.render(scene,camera);}
 async function stage(progress,message,fn){$('load-progress').style.width=progress+'%';$('load-status').textContent=message;await new Promise(r=>setTimeout(r,24));fn()}
-async function init(){try{if(!T)throw new Error('内置三维引擎不可用');await stage(6,'唤醒光与山色',setup);await stage(10,'取来山石草木',()=>{});await loadKit();await ezTrees();await stage(15,'筑起群山，留下平旷土地',terrain);await stage(32,'连通山口与狭道',makeTunnel);await stage(42,'引水成溪，留一方美池',makeWater);await stage(52,'屋舍俨然，阡陌交通',()=>{agriculture();farmPaths()});await stage(64,'桃花在外，桑竹在内',()=>{vegetation();meadowExtras()});await stage(79,'点入种作往来与鸡犬人声',()=>{boat();life();narrativeGeometry();atmosphereDetails();outerBanks();fishSchool();mountainHaze()});await stage(89,'整理几何与观景路径',()=>{flushWoodland();flush();buildGuide();wireUI();prepareStory();narrativeUI();applyNarrativeWorld(-1,0);setQuality(quality);setShot(initialShot);setSky(skyKind,true);setHour(dayHour,true);animateWorld(0);updateBlossomWeather(0)});await stage(96,'薄雾将散，桃源已在眼前',()=>{renderReflection();renderer.render(scene,camera)});armAmbient();ready=true;window.__TAOYUAN__={ready:true,pose,ambient:{target:ambientTarget,tracks:ambientTracks,houses:houseBoxes,enabled:()=>audioEnabled},botany:{state:botanicalState,trees:peachTrees,sources:blossomSources,update:updateBlossomWeather},worldState:()=>({boat:fisherBoat.position.toArray(),marks:trailMarks.map(m=>m.visible),food:meal.userData.food.visible,host:host.visible,visitors:visitors.map(g=>g.visible),search:searchParty.map(g=>g.visible)}),narrative:{story,chapters,parts,start:startStory,stop:stopStory,jump:jumpStory,seek:seekStory,pose:storyPose,update:updateStory,pause:toggleStoryPause,act:completeStoryAction,validate:validateStoryRoutes,save:saveStory,world:applyNarrativeWorld,drawer:openStoryDrawer,closeDrawer:closeStoryDrawer,rotate,zoom,finish:finishStory},revision:T.REVISION,renderer,scene,camera,shots,setShot,setWeather,startTour,stopTour,guidePose,guide:tour,height,tunnelX,caveFloor,cameraClear,setQuality,setHour,setSky,setSeason,render:()=>{renderReflection();renderer.render(scene,camera)},state:()=>({quality,paused,reduced,weather:weatherName,hour:dayHour,sky:skyKind,season:ezSeason,moonPhase,shot:activeShot,tour:tour.active,tourPaused:tour.paused,simTime,frame,audioEnabled,geometry:renderer.info.render,position:camera.position.toArray()})};$('load-progress').style.width='100%';$('load-status').textContent='山水已展开';requestAnimationFrame(renderLoop);setTimeout(()=>{$('loading').style.opacity='0';setTimeout(()=>$('loading').style.display='none',750)},100);if(reduced)setTimeout(()=>toast('已遵循系统偏好暂停动态；可手动继续。'),950)}catch(e){fail(e)}}
+async function init(){try{if(!T)throw new Error('内置三维引擎不可用');await stage(6,'唤醒光与山色',setup);await stage(10,'取来山石草木',()=>{});await loadKit();await ezTrees();await stage(15,'筑起群山，留下平旷土地',terrain);await stage(32,'连通山口与狭道',makeTunnel);await stage(42,'引水成溪，留一方美池',makeWater);await stage(52,'屋舍俨然，阡陌交通',()=>{agriculture();farmPaths();dooryard()});await stage(64,'桃花在外，桑竹在内',()=>{vegetation();meadowExtras()});await stage(79,'点入种作往来与鸡犬人声',()=>{boat();life();narrativeGeometry();atmosphereDetails();outerBanks();fishSchool();mountainHaze()});await stage(89,'整理几何与观景路径',()=>{flushWoodland();flush();buildGuide();wireUI();prepareStory();narrativeUI();applyNarrativeWorld(-1,0);setQuality(quality);setShot(initialShot);setSky(skyKind,true);setHour(dayHour,true);animateWorld(0);updateBlossomWeather(0)});await stage(96,'薄雾将散，桃源已在眼前',()=>{renderReflection();renderer.render(scene,camera)});armAmbient();ready=true;window.__TAOYUAN__={ready:true,pose,ambient:{target:ambientTarget,tracks:ambientTracks,houses:houseBoxes,enabled:()=>audioEnabled},botany:{state:botanicalState,trees:peachTrees,sources:blossomSources,update:updateBlossomWeather},worldState:()=>({boat:fisherBoat.position.toArray(),marks:trailMarks.map(m=>m.visible),food:meal.userData.food.visible,host:host.visible,visitors:visitors.map(g=>g.visible),search:searchParty.map(g=>g.visible)}),narrative:{story,chapters,parts,start:startStory,stop:stopStory,jump:jumpStory,seek:seekStory,pose:storyPose,update:updateStory,pause:toggleStoryPause,act:completeStoryAction,validate:validateStoryRoutes,save:saveStory,world:applyNarrativeWorld,drawer:openStoryDrawer,closeDrawer:closeStoryDrawer,rotate,zoom,finish:finishStory},revision:T.REVISION,renderer,scene,camera,shots,setShot,setWeather,startTour,stopTour,guidePose,guide:tour,height,tunnelX,caveFloor,cameraClear,setQuality,setHour,setSky,setSeason,render:()=>{renderReflection();renderer.render(scene,camera)},state:()=>({quality,paused,reduced,weather:weatherName,hour:dayHour,sky:skyKind,season:ezSeason,moonPhase,shot:activeShot,tour:tour.active,tourPaused:tour.paused,simTime,frame,audioEnabled,geometry:renderer.info.render,position:camera.position.toArray()})};$('load-progress').style.width='100%';$('load-status').textContent='山水已展开';requestAnimationFrame(renderLoop);setTimeout(()=>{$('loading').style.opacity='0';setTimeout(()=>$('loading').style.display='none',750)},100);if(reduced)setTimeout(()=>toast('已遵循系统偏好暂停动态；可手动继续。'),950)}catch(e){fail(e)}}
 init();
 })();
 </script>
