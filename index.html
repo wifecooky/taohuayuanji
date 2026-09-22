@@ -639,6 +639,17 @@ function robeGeo(rt,rb,h){
  for(let i=0;i<p.count;i++){const x=p.getX(i),y=p.getY(i),z=p.getZ(i),a=Math.atan2(z,x),u=clamp(.5-y/h,0,1),fold=1+(.012+.038*u)*Math.cos(a*12)+.016*Math.cos(a*5+u);p.setXYZ(i,x*fold,y,z*fold)}g.computeVertexNormals();return g;
 }
 function collarGeo(points,width){return new T.TubeGeometry(new T.CatmullRomCurve3(points.map(p=>V(...p))),12,width,6,false)}
+// 放样：沿 y 轴串起若干截面 [y,rx,rz,cz=0,k=2]（超椭圆，k 越大越方），Catmull-Rom 平滑过渡；fold>0 叠布褶
+function loftGeo(st,seg=20,fold=0){if(st[st.length-1][0]<st[0][0])st=st.slice().reverse();// 统一自下而上绕，法线才朝外
+ const A=new T.CatmullRomCurve3(st.map(q=>V(q[1],q[0],q[2])),false,'catmullrom',.5),B=new T.CatmullRomCurve3(st.map(q=>V(q[3]||0,q[0],q[4]||2)),false,'catmullrom',.5);
+ const rings=(st.length-1)*4+1,pos=[],idx=[],p=V(),q=V();
+ for(let r=0;r<rings;r++){const u=r/(rings-1);A.getPoint(u,p);B.getPoint(u,q);const rx=Math.max(.002,p.x),rz=Math.max(.002,p.z),k=2/Math.max(1,q.z),v=1-u;
+  for(let i=0;i<seg;i++){const a=i/seg*TAU,c=Math.cos(a),s=Math.sin(a),f=fold?1+fold*((.012+.038*v)*Math.cos(a*12)+.016*Math.cos(a*5+v)):1;
+   pos.push(Math.sign(c)*Math.pow(Math.abs(c),k)*rx*f,p.y,q.x+Math.sign(s)*Math.pow(Math.abs(s),k)*rz*f)}}
+ for(let r=0;r<rings-1;r++)for(let i=0;i<seg;i++){const a=r*seg+i,b=r*seg+(i+1)%seg,c=a+seg,d=b+seg;idx.push(a,c,b,b,c,d)}
+ const n0=pos.length/3,n1=n0+1,t=(rings-1)*seg,e=st[st.length-1];pos.push(0,st[0][0],st[0][3]||0,0,e[0],e[3]||0);
+ for(let i=0;i<seg;i++)idx.push(n0,i,(i+1)%seg,n1,t+(i+1)%seg,t+i);
+ const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(pos,3));g.setIndex(idx);g.computeVertexNormals();return g}
 let characterMaterial;
 function shapesMesh(parts,parent){const pp=[],cc=[],nn=[],m=new T.Matrix4(),nm=new T.Matrix3(),obj=new T.Object3D(),v=V(),normal=V();
  for(let [geo,x,y,z,h,sx=1,sy=1,sz=1,rx=0,ry=0,rz=0] of parts){let g=geo.index?geo.toNonIndexed():geo;obj.position.set(x,y,z);obj.rotation.set(rx,ry,rz);obj.scale.set(sx,sy,sz);obj.updateMatrix();m.copy(obj.matrix);nm.getNormalMatrix(m);let p=g.attributes.position,n=g.attributes.normal,c=color(h);for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i).applyMatrix4(m);normal.fromBufferAttribute(n,i).applyMatrix3(nm).normalize();pp.push(v.x,v.y,v.z);nn.push(normal.x,normal.y,normal.z);cc.push(c.r,c.g,c.b)}if(g!==geo)g.dispose();geo.dispose()}
@@ -651,10 +662,15 @@ function shapesMesh(parts,parent){const pp=[],cc=[],nn=[],m=new T.Matrix4(),nm=n
 function person(x,z,role='chat',angle=0,s=1,clothes='#71847d',opts={}){const root=new T.Group(),floor=height(x,z);root.position.set(x,Math.max(.43,floor)+.02,z);root.rotation.y=angle;root.scale.setScalar(s);scene.add(root);
  root.name='村人 · '+role;root.userData.kind='villager';const body=new T.Group();body.name='body';root.add(body);
  const kid=role==='child',work=opts.work??(role==='farm'||role==='water'),female=!!opts.female,skin='#c9a98a',hair=opts.hair||'#2f2a24',inner='#e8dfc8',belt='#4a3f33',trouser=work?'#4d4a42':'#5a5548',shoe='#3b352e';
- const HIP=kid?.66:.95,TH=kid?.30:.42,SH=kid?.28:.42,TO=kid?.36:.50,HD=kid?.58:.72;
- const legs=[];for(let side of [-1,1]){const leg=new T.Group();leg.name=side<0?'legL':'legR';leg.position.set(side*.10,HIP,0);body.add(leg);shapesMesh([[geoCyl(.085,.072,TH),0,-TH/2,0,trouser,1,1,.9],[geoSph(.074),0,-TH,0,trouser,1,1,.9]],leg);const knee=new T.Group();knee.name=side<0?'kneeL':'kneeR';knee.position.set(0,-TH,0);leg.add(knee);shapesMesh([[geoCyl(.071,.054,SH),0,-SH/2,0,trouser,1,1,.9],[geoSph(.10),0,-SH-.035,.045,shoe,.76,.50,1.5]],knee);leg.knee=knee;legs.push(leg)}
- if(role==='sit')shapesMesh([[geoSph(1),0,HIP-.06,.19,clothes,.28,.12,.32],[robeGeo(.24,.27,.35),0,HIP-.29,.40,clothes,1,1,.5]],body);
- else{const h=work||kid?.40:HIP-.14,rb=work||kid?.31:.38;shapesMesh([[robeGeo(.235,rb,h),0,HIP-h/2,0,clothes,1,1,.8]],body)}
+ const HIP=kid?.66:.95,TH=kid?.30:.42,SH=kid?.28:.42,TO=kid?.36:.50,HD=kid?.58:.72,K=kid?.8:1;
+ // 腿：大腿前鼓后收、膝盖略窄、小腿肚在上三分之一、脚踝收细；脚是楔形——脚跟圆、脚背隆起、脚尖扁
+ const legs=[];for(let side of [-1,1]){const leg=new T.Group();leg.name=side<0?'legL':'legR';leg.position.set(side*.105,HIP,0);body.add(leg);
+  shapesMesh([[loftGeo([[.02,.10*K,.115*K,.012],[-.14,.094*K,.104*K,.02],[-TH+.07,.074*K,.08*K,.004],[-TH,.066*K,.07*K,0]]),0,0,0,trouser],[geoSph(.068*K),0,-TH,0,trouser]],leg);
+  const knee=new T.Group();knee.name=side<0?'kneeL':'kneeR';knee.position.set(0,-TH,0);leg.add(knee);
+  shapesMesh([[loftGeo([[0,.064*K,.068*K,0],[-.11,.069*K,.08*K,-.014],[-SH+.10,.048*K,.054*K,-.008],[-SH+.01,.042*K,.045*K,0]]),0,0,0,trouser],
+   [loftGeo([[-.075,.036,.04,.005,2.3],[-.01,.046,.05,-.005,2.3],[.075,.048,.045,0,2.6],[.14,.045,.03,.015,2.6],[.17,.024,.012,.033,2]]),0,-SH-.04,.02,shoe,K,K,K,PI/2]],knee);leg.knee=knee;legs.push(leg)}
+ if(role==='sit')shapesMesh([[geoSph(1),0,HIP,.22,clothes,.29,.16,.34],[robeGeo(.22,.27,.45),0,HIP-.22,.40,clothes,1,1,.5]],body);
+ else{const h=work||kid?.40:HIP-.14,rb=work||kid?.31:.38;shapesMesh([[loftGeo([[HIP+.02,.235,.19,-.01],[HIP-h*.45,mix(.235,rb,.4),mix(.19,rb*.86,.4),0],[HIP-h,rb,rb*.86,.01]],32,1),0,0,0,clothes]],body)}
  const upper=new T.Group();upper.name='upper';upper.position.set(0,HIP,0);body.add(upper);const NECK=TO+.08,head=new T.Group();head.name='head';head.position.y=NECK;upper.add(head);
  const face=[
   [geoSph(.011),-.051,HD+.018,.121,'#42362b',1,.63,.55],[geoSph(.011),.051,HD+.018,.121,'#42362b',1,.63,.55],
@@ -667,14 +683,23 @@ function person(x,z,role='chat',angle=0,s=1,clothes='#71847d',opts={}){const roo
  else if(female)hairParts.push([geoSph(.076),0,HD+.14,-.082,hair,1.22,.88,1],[geoSph(.052),0,HD+.035,-.151,hair],[geoCyl(.007,.007,.23,8),0,HD+.16,-.085,'#a28c62',1,1,1,0,0,1.4]);
  else if(work)hairParts.push([geoCyl(.145,.145,.043),0,HD+.098,-.014,'#655d50',1,1,.94],[geoSph(.063),0,HD+.192,-.039,hair,.85,1,.85]);
  else hairParts.push([geoSph(.07),0,HD+.194,-.035,hair,.78,1,.88],[geoCyl(.008,.008,.23,8),0,HD+.205,-.04,'#b08c5c',1,1,1,0,0,PI/2]);
- if(opts.beard)hairParts.push([geoSph(.075),0,HD-.134,.084,opts.beard,.78,1.4,.36]);
- const collar=[[-.115,TO+.005,.10],[0,TO-.11,.193],[.11,TO-.29,.195]],under=[[.12,TO+.002,.105],[.049,TO-.094,.182],[.005,TO-.13,.192]];
- shapesMesh([[robeGeo(.23,.245,TO),0,TO/2,0,clothes,1,1,.78],[geoSph(.105),-.165,TO-.08,0,clothes,1,.78,1.32],[geoSph(.105),.165,TO-.08,0,clothes,1,.78,1.32],[geoCyl(.247,.247,.055,32),0,.035,0,belt,1,1,.8],[collarGeo(collar,.016),0,0,0,inner],[collarGeo(under,.013),0,0,0,inner],[geoCyl(.06,.07,.13),0,TO+.035,0,skin]],upper);
- shapesMesh([[geoSph(.15),0,HD,0,skin,.86,1.08,.88],...face,...hairParts].map(q=>{q=q.slice();q[2]-=NECK;return q}),head);
+ if(opts.beard)hairParts.push([geoSph(.075),0,HD-.134,.095,opts.beard,.78,1.4,.36]);
+ // 躯干：腰收、胸挺、肩线圆润过渡到颈；女子肩窄
+ const shW=female?.245:kid?.235:.265,collar=[[-.115,TO+.005,.10],[0,TO-.11,.193],[.11,TO-.29,.195]],under=[[.12,TO+.002,.105],[.049,TO-.094,.182],[.005,TO-.13,.192]];
+ shapesMesh([[loftGeo([[-.01,.235,.19,0],[.2*TO,.215,.17,-.005],[.5*TO,.225,.185,0],[.8*TO,shW,.175,-.01],[.94*TO,shW*.82,.15,-.02],[TO+.02,.105,.10,-.02]],32,.6),0,0,0,clothes],[loftGeo([[.008,.247,.197,0],[.062,.247,.197,0]],32),0,0,0,belt],[collarGeo(collar,.016),0,0,0,inner],[collarGeo(under,.013),0,0,0,inner],[loftGeo([[-.07,.07,.066,-.005],[.03,.058,.055,-.005],[.09,.064,.06,-.005]]),0,TO+.035,0,skin]],upper);
+ // 头：下颌收窄、颧骨最宽、后脑鼓出，不再是一颗球
+ shapesMesh([[loftGeo([[HD-.16,.04,.04,.02],[HD-.13,.08,.075,.012],[HD-.07,.116,.119,.004],[HD-.02,.128,.132,0],[HD+.03,.131,.135,-.006],[HD+.09,.12,.128,-.012],[HD+.14,.075,.09,-.015],[HD+.165,.02,.03,-.015]],24),0,0,0,skin],...face,...hairParts].map(q=>{q=q.slice();q[2]-=NECK;return q}),head);
+ // 手：扁掌、指尖收拢、拇指外张
  const arms=[],wide=!work&&!kid;for(let side of [-1,1]){const arm=new T.Group();arm.name=side<0?'armL':'armR';arm.position.set(side*.25,TO-.035,0);upper.add(arm);const len=wide?.42:.38,cuff=wide?.14:.082;
- shapesMesh([[robeGeo(.087,cuff,len),0,-len/2,0,clothes],[geoCyl(cuff,cuff,.027,24),0,-len-.01,0,inner],[geoSph(.055),0,-len-.065,0,skin,.76,1,.57],[geoSph(.022),-side*.033,-len-.052,.025,skin,.7,1,.75]],arm);arm.rotation.z=side*.12;arms.push(arm)}
+ shapesMesh([[robeGeo(.087,cuff,len),0,-len/2,0,clothes],[geoCyl(cuff,cuff,.027,24),0,-len-.01,0,inner],[loftGeo([[.01,.03,.022,0,2.4],[-.04,.044,.024,.002,2.6],[-.085,.042,.02,.003,2.6],[-.115,.028,.014,0,2.2]],14),0,-len-.02,0,skin],[geoCyl(.011,.008,.055,8),-side*.046,-len-.055,.012,skin,1,1,1,0,0,side*.55]],arm);arm.rotation.z=side*.12;arms.push(arm)}
 
- if(opts.fisher){const straw=new T.MeshStandardMaterial({color:'#6e5e3c',roughness:.95,flatShading:true,side:T.DoubleSide});for(const [rt,rb,h,y] of [[.34,.46,.36,TO-.16],[.37,.50,.24,TO-.40]]){const cape=new T.Mesh(new T.CylinderGeometry(rt,rb,h,18,1,true),straw);cape.position.set(0,y,0);upper.add(cape)}const yoke=new T.Mesh(new T.SphereGeometry(.30,18,8,0,TAU,0,1.25),straw);yoke.position.set(0,TO-.11,0);upper.add(yoke);const hat=new T.Mesh(new T.ConeGeometry(.41,.21,28),straw);hat.position.set(0,HD+.20-NECK,0);head.add(hat)}// 渔人：蓑衣、斗笠
+ if(opts.fisher){// 渔人：蓑衣——内衬一层斗篷，外披四层扁草束贴着肩身铺开（第一层盖肩），每根长短、倾角、色泽由 hash 定；斗笠加边箍、顶结、颏绳
+  const straw=['#7a6742','#6b5a38','#8c7a4c'],cape=new T.Mesh(new T.CylinderGeometry(.38,.50,.60,20,1,true),new T.MeshStandardMaterial({color:'#4f4128',roughness:1,side:T.DoubleSide}));cape.position.y=TO-.30;cape.castShadow=true;upper.add(cape);
+  const parts=[[new T.SphereGeometry(.40,20,8,0,TAU,0,1.35),0,TO-.12,0,'#4f4128',1,.5,1]];// 扁肩罩垫底，盖住袖口顶，草束间隙不露衣
+  for(const [t,y0,r0,L0,b0,N,w] of [[0,TO+.06,.14,.24,1.0,64,2.6],[1,TO-.04,.37,.32,.40,56,1.8],[2,TO-.20,.41,.32,.38,56,1.8],[3,TO-.34,.44,.30,.35,56,1.8]])for(let i=0;i<N;i++){const h1=hash(i,t*7.1),h2=hash(t,i*3.3),a=(i+.5*t)/N*TAU+.05*(h1-.5),L=L0*(.88+.24*h2),b=b0+.12*(h1-.5),cx=Math.cos(a),sx=Math.sin(a),o=r0+L/2*Math.sin(b);
+   parts.push([geoCyl(.012,.004,L,5),o*cx,y0-L/2*Math.cos(b),o*sx,straw[Math.floor(h2*3)],1,1,w,0,-a,b])}
+  shapesMesh(parts,upper);const hy=HD+.20;
+  shapesMesh([[new T.ConeGeometry(.41,.21,14),0,hy,0,'#a08a58'],[new T.TorusGeometry(.405,.014,6,28),0,hy-.10,0,'#6b5a38',1,1,1,PI/2],[geoCyl(.02,.03,.05,8),0,hy+.12,0,'#6b5a38'],[collarGeo([[-.13,HD+.06,0],[-.115,HD-.11,.045],[0,HD-.17,.075],[.115,HD-.11,.045],[.13,HD+.06,0]],.006),0,0,0,'#4a3a25']].map(q=>{q[2]-=NECK;return q}),head)}
  let tool=null;
  if(role==='farm'){upper.rotation.x=.5;arms.forEach(a=>a.rotation.x=-1.0);legs[0].rotation.x=.35;legs[1].rotation.x=-.30;tool=new T.Group();tool.name='tool';body.add(tool);partsMesh([[.18,.60,.55,.045,1.32,.048,'#92774e',.44],[.18,.03,.82,.40,.06,.12,'#706b52']],tool);const hat=new T.Mesh(new T.ConeGeometry(.40,.19,32),mat('#b5a070'));hat.position.set(0,HD+.24-NECK,0);head.add(hat)}
  if(role==='water'){legs.forEach(l=>{l.rotation.x=-1.6;l.knee.rotation.x=1.97});root.position.y-=.57;upper.rotation.x=.55;arms[0].rotation.x=-.85;arms[1].rotation.x=-.65;const props=new T.Group();props.position.y=.57;body.add(props);partsMesh([[-.30,.14,.42,.30,.16,.28,'#8c805f'],[-.30,.24,.42,.26,.03,.24,'#b9c4c2'],[.34,.11,.40,.44,.04,.30,'#c6b89a'],[.34,.15,.40,.06,.04,.30,'#7a6a52']],props)}
