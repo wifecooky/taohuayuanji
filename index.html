@@ -286,7 +286,7 @@ function makeWater(){reflectionTarget=new T.WebGLRenderTarget(512,512,{minFilter
  for(let c of channels)for(let i=1;i<c.p.length;i++){let a=c.p[i-1],b=c.p[i],len=Math.hypot(b[0]-a[0],b[1]-a[1]),nx=(b[1]-a[1])/len,nz=(a[0]-b[0])/len;for(let t=.6;t<len;t+=1.2)for(let s of [-1,1]){let r=hash(a[0]*3+t,a[1]*3+s),d=c.w+.25+r*1.3,x=mix(a[0],b[0],t/len)+nx*d*s,z=mix(a[1],b[1],t/len)+nz*d*s,y=height(x,z);if(y<.15||y>1.2)continue;if(r<.22)reedClump(x,z,y,r*3);else prop('rock',x,y+.03,z,.1+r*.22,.06+r*.1,.1+r*.2,['#9aa593','#aab08f','#7f8d81'][Math.floor(r*3)],r*6)}}
  // Narrow, working landing for drawing water.
  for(let i=0;i<9;i++)box(-12.3,.66,8+i*.24,3.1,.12,.22,pick(['#9c8f70','#867b60']));for(let x of [-13.5,-11.1])for(let z of [8,9.7])box(x,.10,z,.17,1.05,.17,'#746b53');
- waterfall();waterWheel();
+ lotus();waterfall();waterWheel();
 }
 let fallMaterial,highWater,mistMesh,mistData=[],millWheel;
 // 高处的潭水不能用湖面的反射矩阵，另开一份材质，只去掉反射。
@@ -398,6 +398,58 @@ function waterWheel(){
 }
 function reedClump(x,z,y,r){for(let k=0;k<5;k++){let a=r*TAU+k*2.4,xx=x+Math.cos(a)*.22,zz=z+Math.sin(a)*.22,h=.45+.6*hash(k+r*9,r*7);box(xx,y+h/2,zz,.035,h,.038,['#74834c','#8e9c5f','#7d8f55'][(k+Math.floor(r*3))%3],'detail',(r-.5)*.16,a,(hash(k,r*5)-.5)*.2,1)}}
 function reeds(x,z,y){for(let k=0;k<4;k++){let xx=x+rand(-.25,.25),zz=z+rand(-.25,.25),h=rand(.4,1.1);box(xx,y+h/2,zz,.035,h,.038,pick(['#74834c','#8e9c5f']),'detail',rand(-.09,.09),0,rand(-.12,.12),1);box(xx+.06,y+h*.65,zz,.045,h*.42,.015,'#9ba567','detail',0,0,-.5,.6)}}
+// 美池种荷：荷根扎在浅泥里，深处不生，所以只绕着池边一圈；埠头取水处留出水面。
+// 荷随节令：春浮叶、夏盛花、秋莲蓬、冬残荷。
+const LOTUS={
+ spring:{pad:.52,rise:.16,bud:.05,flower:0,pod:0,dead:.10,leaf:['#6f9152','#7fa25c','#628a4f']},
+ summer:{pad:1,rise:.34,bud:.06,flower:.12,pod:.02,dead:0,leaf:['#4e7a46','#5d8a4e','#6b985a']},
+ autumn:{pad:.72,rise:.30,bud:0,flower:.015,pod:.13,dead:.22,leaf:['#7d8c4c','#8d9150','#6d7f47']},
+ winter:{pad:.06,rise:0,bud:0,flower:0,pod:.04,dead:1,leaf:['#8a8058','#7a7150','#938964']}};
+function lotusPad(g,x,y,z,r,tx,tz,col,gap=.24){
+ const c=color(col),rim=c.clone().multiplyScalar(1.12),cen=[x,y,z],N=12,span=TAU-2*gap;
+ const P=a=>{const u=Math.cos(a)*r,v=Math.sin(a)*r;return[x+u,y+u*tx+v*tz-r*.16,z+v]};
+ for(let i=0;i<N;i++)triangle(g,cen,P(gap+i/N*span),P(gap+(i+1)/N*span),[c,rim,rim]);
+}
+function lotusFlower(g,x,z,s,open,i){
+ const h=(.66+hash(i,14.3)*.42)*s,top=[x+(hash(i,15.1)-.5)*.22,h,z+(hash(i,16.3)-.5)*.22];
+ tubeInto(g,[[x,-.06,z],[mix(x,top[0],.55),h*.55,mix(z,top[2],.55)],top],[.030*s,.024*s,.020*s],['#6e8a52','#7b9a5c'],6);
+ const petals=open?10:7,lean=open?.82:.20,len=(open?.30:.27)*s;
+ for(let k=0;k<petals;k++){const a=k/petals*TAU+hash(i,17.7)*TAU,r=k%2?lean:lean*.60;
+  leafInto(g,[top[0],top[1]-.02,top[2]],V(Math.cos(a)*r,1-r*.52,Math.sin(a)*r),len,.085*s,['#f0b6ca','#ecaac2','#f6cfdb','#fae6e4'][k%4])}
+ if(open)octaInto(g,[top[0],top[1]+.03,top[2]],.052*s,'#e3d089');
+}
+function lotusPod(g,x,z,s,i){
+ const h=(.60+hash(i,14.3)*.30)*s;
+ tubeInto(g,[[x,-.06,z],[x+.05*s,h*.55,z],[x+.02*s,h,z]],[.030*s,.026*s,.031*s],['#7a8a4e','#89954f'],6);
+ lotusPad(g,x+.02*s,h+.03,z,.135*s,.04,.04,'#98a25b',0);
+ octaInto(g,[x+.02*s,h+.05,z],.036*s,'#6c7743');
+}
+function lotusDead(g,x,z,i){
+ const h=.46+hash(i,14.3)*.52,a=hash(i,15.1)*TAU,b=.30+hash(i,16.3)*.55;
+ tubeInto(g,[[x,-.06,z],[x+Math.cos(a)*b*.35,h*.72,z+Math.sin(a)*b*.35],[x+Math.cos(a)*b,h*.84,z+Math.sin(a)*b]],[.026,.020,.013],['#8a7f5c','#786d50'],5);
+}
+function lotus(){
+ const S=LOTUS[ezSeason],g=geometryBuffer();
+ for(let i=0;i<680;i++){
+  const a=hash(i,1.7)*TAU,rr=.44+hash(i,2.9)*.58,x=-27+17.5*Math.cos(a)*rr,z=7+10.5*Math.sin(a)*rr;
+  if(pondR(x,z)>1.02)continue;
+  if(x>-15.6&&x<-9.0&&z>5.6&&z<11.6)continue;
+  if(hash(i,4.3)>(Math.sin(a*5.3+rr*7.1)*.5+.5)*.88+.10)continue; // 成丛，不是均匀撒开
+  const r=.32+hash(i,6.7)*.36;
+  if(hash(i,5.1)<S.pad){
+   if(hash(i,8.3)<S.rise){const h=.28+hash(i,9.1)*.38; // 立叶：茎撑出水面
+    tubeInto(g,[[x,-.06,z],[x+.02,h*.6,z-.02],[x,h,z]],[.026,.021,.017],['#6f8a52','#7c9a5e'],6);
+    lotusPad(g,x,h+.02,z,r*.92,(hash(i,10.3)-.5)*.32,(hash(i,11.7)-.5)*.32,S.leaf[i%3]);
+   }else lotusPad(g,x,.058,z,r,(hash(i,10.3)-.5)*.12,(hash(i,11.7)-.5)*.12,S.leaf[i%3]);
+  }
+  const u=hash(i,12.9),sc=.92+hash(i,13.7)*.34;
+  if(u<S.flower)lotusFlower(g,x,z,sc,true,i);
+  else if(u<S.flower+S.bud)lotusFlower(g,x,z,sc,false,i);
+  else if(u<S.flower+S.bud+S.pod)lotusPod(g,x,z,sc,i);
+  else if(u<S.flower+S.bud+S.pod+S.dead*.26)lotusDead(g,x,z,i);
+ }
+ const m=mesh(geometryFinish(g),new T.MeshStandardMaterial({vertexColors:true,roughness:.86,side:T.DoubleSide}));m.name='荷 · 浮叶、立叶与花蓬';
+}
 // Transform a village element from its own local plan into the world.
 function localBox(ox,oz,a,x,y,z,sx,sy,sz,h,cat='solid',rx=0,ry=0,rz=0,w=0){let ca=Math.cos(a),sa=Math.sin(a);box(ox+x*ca+z*sa,y,oz-x*sa+z*ca,sx,sy,sz,h,cat,rx,ry+a,rz,w)}
 function localBeam(ox,oz,angle,a,b,w,h,cat='solid'){function trans(p){return[ox+p[0]*Math.cos(angle)+p[2]*Math.sin(angle),p[1],oz-p[0]*Math.sin(angle)+p[2]*Math.cos(angle)]}beam(trans(a),trans(b),w,h,cat)}
@@ -513,6 +565,34 @@ function field(x,z,w,d,angle,land='dry'){let y=baseFloor(x,z)+.02;const B=(...p)
  if(land==='paddy'){paddyMat=paddyMat||new T.MeshStandardMaterial({color:'#9db7ad',transparent:true,opacity:.5,roughness:.22,metalness:.1});const sheen=mesh(polyGeo([W(-w/2,-d/2),W(w/2,-d/2),W(w/2,d/2),W(-w/2,d/2)],y+.045),paddyMat,0,0,0,false);sheen.renderOrder=2}
  if((K.ear||K.pod||K.fruit)&&hash(x,z)>.52){const px=(hash(x,z+1)>.5?1:-1)*(w/2-.9),pz=(hash(x+1,z)>.5?1:-1)*(d/2-.9);B(px,y+.85,pz,.06,1.7,.06,'#8c7c5a','crop');B(px,y+1.22,pz,1.0,.05,.06,'#8c7c5a','crop');B(px,y+1.18,pz,.46,.42,.16,'#7a6f78','crop');B(px,y+1.48,pz,.2,.2,.2,'#c9b48f','crop');B(px,y+1.62,pz,.44,.05,.44,'#b5a070','crop',0,.4)}
 }
+// 牛羊同圈，圈在瀑布下游的草地：离渠十余丈，粪水不进上游的灌渠；有棚避雨，有槽饮水，有架挂草。
+function pens(){
+ // 一道栅栏围完，东面留门。牛羊混养本是小农家的常法，群居还更暖和。
+ fence([[-29.6,-60],[-37,-60],[-37,-68],[-22.5,-68],[-22.5,-60],[-27.2,-60]],.92);
+ path([[-28.4,-59.7],[-26.6,-57.6],[-23.4,-56.5]],1.0,'#b8ac8e',null,false);
+ // 单坡草棚靠西北角，脊背朝风，檐口向东滴水。
+ const sx=-34.2,sz=-66,sy=baseFloor(sx,sz);
+ for(const dx of [-2.5,2.5])for(const dz of [-1.7,1.7])box(sx+dx,sy+(dz<0?1.32:1.06),sz+dz,.15,dz<0?2.64:2.12,.15,'#6e5c40');
+ beam([sx-2.6,sy+2.60,sz-1.7],[sx+2.6,sy+2.60,sz-1.7],.11,'#7b6747');beam([sx-2.6,sy+2.08,sz+1.7],[sx+2.6,sy+2.08,sz+1.7],.11,'#7b6747');
+ box(sx,sy+2.40,sz,5.6,.20,3.9,'#b7a97c','solid',.134);
+ for(let i=0;i<6;i++)box(sx-2.3+i*.92,sy+2.50-.01*i,sz,.10,.09,3.9,'#9e9169','detail',.134);
+ // 背面钉一层竖板挡风，其余三面敞着透气。
+ for(let i=0;i<11;i++)box(sx-2.45+i*.49,sy+1.26,sz-1.76,.46,2.50,.07,['#7e6d4e','#8a7856','#736349'][i%3],'solid',0,0,(hash(i,2.3)-.5)*.03);
+ // 石槽引渠水是奢侈，这里只是一口木槽，人挑水来填。
+ const tx=-25.4,tz=-62.6,ty=baseFloor(tx,tz);
+ box(tx,ty+.24,tz,.7,.48,2.3,'#8b7d5e');box(tx,ty+.44,tz,.46,.14,2.0,'#4f6a63');
+ for(const dz of [-1.0,1.0])box(tx,ty+.12,tz+dz,.34,.24,.2,'#6e634f');
+ // 草架：斜插的横木，牛羊够得着，草不落地被踩脏。
+ const hx=-29.6,hz=-66.6,hy=baseFloor(hx,hz);
+ for(const dx of [-1.1,1.1])box(hx+dx,hy+.62,hz,.12,1.24,.12,'#7b6747');
+ for(let i=0;i<5;i++)beam([hx-1.1,hy+.55+i*.17,hz-.42],[hx+1.1,hy+.55+i*.17,hz+.02],.05,'#9c8f70','detail');
+ for(let i=0;i<9;i++)box(hx+rand(-1.0,1.0),hy+1.16,hz-.2+rand(-.14,.14),.1,.3,.1,pick(['#c0b276','#ab9e66','#cbbc84']),'detail',rand(-.4,.4),rand(0,TAU));
+ // 粪堆堆在圈外下风处，渤熟了再挑去田里。离渠三十丈。
+ const mx=-19,mz=-65.6,my=baseFloor(mx,mz);
+ for(let i=0;i<16;i++){const a=hash(i,3.1)*TAU,d=hash(i,5.7)*1.9;box(mx+Math.cos(a)*d,my+.09+hash(i,7.3)*.17*(1-d/2.4),mz+Math.sin(a)*d,.82,.22,.70,['#5f5238','#564a33','#685a41'][i%3],'solid',0,a)}
+ for(let i=0;i<9;i++)box(mx+rand(-1.8,1.8),my+.30,mz+rand(-1.7,1.7),.30,.05,.26,'#a89a6c','detail',rand(-.2,.2),rand(0,TAU));
+ fence([[-21.2,-62.6],[-16.6,-62.6],[-16.6,-68.4]],.55);
+}
 function agriculture(){
  // 水在哪里，田就在哪里：水田贴着池与渠，旱地退到南边高处，园圃靠着人家。
  field(-29,-15,16,9,-.05,'paddy');field(-3,-15,16,9,.04,'paddy');field(-30,-32,15,8,.09,'paddy');
@@ -531,6 +611,7 @@ function agriculture(){
  field(26,-26,5.0,6.0,.07,'veg');fence([[23.2,-29.3],[28.8,-29.3],[28.8,-22.7]],.64);
  // 李园在村东高爽处；杏枣三两株散在各家墙外。
  orchard(35,-11,3,3,3.8,'plum',.12);
+ pens();
  fruitTree(16.5,-22.2,1.02,'apricot');fruitTree(26.2,-44.8,.95,'jujube');fruitTree(47.4,-45.6,1.05,'apricot');fruitTree(4.2,-43.1,.92,'jujube');fruitTree(50.6,-16.4,1.0,'plum');
 }
 // Peach trees: visibly branching trunks; blossoms are small, open, irregular clusters along twigs.
@@ -822,7 +903,7 @@ function vegetation(){
  for(let z=93;z<205;z+=5.6){for(let side of [-1,1]){let xx=streamX(z)+side*rand(5.7,8.8),zz=z+rand(-1.1,1.1);peach(xx,zz,rand(.88,1.32),z<160);if(rng()<.60)peach(xx+side*rand(3.5,5.5),zz+rand(-2,2),rand(.8,1.2),false)}}
  // Only a few peach boughs at the inner mouth, never an interior orchard.
  peach(-53,43,1.5,true);peach(-50,28,1.9,true);peach(-33,49,1.12,true);peach(-49,88,1.35,true);peach(-37,90,1.05,true);
- for(let p of [[-20,-64],[-32,-68],[-45,-57],[-11,-68],[2,-66],[15,-62],[36,-62],[55,-58],[62,-43],[62,-15],[47,-1],[3,-29],[19,-48],[36,-41]])mulberry(p[0],p[1],rand(.85,1.22));
+ for(let p of [[-15.5,-61],[-39,-71],[-45,-57],[-11,-68],[2,-66],[15,-62],[36,-62],[55,-58],[62,-43],[62,-15],[47,-1],[3,-29],[19,-48],[36,-41]])mulberry(p[0],p[1],rand(.85,1.22));
  for(let p of [[51,-62],[59,-55],[60,-66],[48,-70],[66,-50],[-59,-44],[-59,-32],[-56,-56],[0,-74],[14,-73],[39,-68]])bamboo(p[0],p[1],rand(.8,1.13));
  for(let k=0;k<3600;k++){let x=rand(-152,151),z=rand(-151,105),h=height(x,z),r=Math.hypot(x/87,(z+14)/84);if(r<.79||h<3.4)continue;if(Math.abs(x-tunnelX(z))<7&&z>40&&z<94)continue;if(z>84&&Math.abs(x-streamX(z))<15)continue;if(hash(x*3.1+11,z*2.7)>treeFit(x,z,h))continue;woodlandTree(x,z,rand(.9,1.60),h>48||z<-120)}
  // Connected woods at the feet of the enclosing hills, broken by clearings.
@@ -994,9 +1075,9 @@ function life(){person(-25,-16,'farm',.4,1,'#5b6b8a');person(-3,3,'farm',-.3,1,'
  animal(29,1,'dog',1.5);for(let p of [[35,-4],[36,-3],[37,-4.8],[16,-4.7],[15,-5.5]])animal(...p,'hen',rand(0,TAU));
  // A low bench and some everyday farming tools.
  box(32.3,.67,-4.1,2.4,.16,.53,'#8e7f60');for(let x of [31.4,33.2])box(x,.42,-4.1,.16,.4,.40,'#6e634f');beam([40.8,.55,-29.9],[40.4,2.10,-30.1],.045,'#9c855b','detail');box(40.8,.58,-29.9,.55,.08,.12,'#82755c','detail');
- // 水牛在池边吃草，羊散在村东的坡地。都落在草地上：不踩田，不下水。
- animal(-12.6,19.4,'ox',1.15);animal(44.6,-13.6,'ox',-.75);
- for(const p of [[26.2,6.4,.7],[28.4,8.1,-1.3],[25.3,4.2,2.1],[29.4,5.5,.2],[27.1,9.0,-2.4]])animal(p[0],p[1],'goat',p[2]);
+ // 牛羊都在瀑布下游的圈里，不再散在池边村东：田不被踩，水不受污。
+ animal(-33.4,-62.4,'ox',.5);animal(-29.2,-61.5,'ox',-1.1);
+ for(const p of [[-26.6,-66.8,.7],[-24.2,-65.2,-1.3],[-27.2,-64.1,2.1],[-23.5,-67.2,.2],[-25.4,-61.6,-2.4]])animal(p[0],p[1],'goat',p[2]);
 }
 /* 溪鱼。一条鱼只是溪上的一个 z：x 由 streamX 决定，深浅与偏移各自带着，
  * 游动就是 z 在自己的一段水面上来回。领头的几条不自己游 —— 故事把 fishLeadZ 递给它们，
