@@ -852,9 +852,25 @@ function boat(){
 function makeMeal(x,z,second=false){
  const g=new T.Group();g.position.set(x,baseFloor(x,z)+.13,z);scene.add(g);g.name='家常酒食与低案';
  partsMesh([[0,.54,0,1.65,.12,1.0,'#947956'],[-.65,.27,-.35,.10,.50,.10,'#756144'],[.65,.27,-.35,.10,.50,.10,'#756144'],[-.65,.27,.35,.10,.50,.10,'#756144'],[.65,.27,.35,.10,.50,.10,'#756144']],g);
- const food=new T.Group();g.add(food);for(let p of [[-.43,.22],[.46,.24],[.30,-.27],[-.38,-.25]]){const bowl=new T.Mesh(new T.CylinderGeometry(.135,.072,.09,10),mat('#b9a584'));bowl.position.set(p[0],.64,p[1]);food.add(bowl);const rice=new T.Mesh(new T.CylinderGeometry(.105,.105,.02,9),mat('#d9d1ac'));rice.position.set(p[0],.693,p[1]);food.add(rice)}
- const dish=new T.Mesh(new T.CylinderGeometry(.26,.24,.04,12),mat('#bca582'));dish.position.set(-.03,.615,-.02);food.add(dish);partsMesh([[-.07,.66,-.03,.18,.09,.13,'#a98c64'],[.04,.67,.06,.14,.08,.15,'#b6996c'],[.12,.65,-.10,.14,.06,.12,'#778157'],[-.24,.624,.35,.022,.023,.25,'#735b3f']],food);
- const wine=new T.Mesh(new T.CylinderGeometry(.07,.13,.33,9),mat('#746c57'));wine.position.set(.69,.76,-.18);food.add(wine);
+ // 「设酒杀鸡作食」：圈足陶碗盛饭堆，整鸡一盘，青菜一碗，酒壶配酒盏，每碗旁一双筷
+ const food=new T.Group();g.add(food);const P=[],SY=.60,pot='#b9a584',ware='#8f7f62';
+ const bowl=(r=1)=>[loftGeo([[0,.05,.05],[.012,.056,.056],[.032,.092,.092],[.072,.126,.126],[.09,.136,.136]],16),0,SY,0,pot,r,r,r];
+ for(const [px,pz] of [[-.43,.22],[.46,.24],[.30,-.27],[-.38,-.25]]){const b=bowl();b[1]=px;b[3]=pz;P.push(b);
+  P.push([new T.SphereGeometry(.125,12,7,0,TAU,0,PI/2),px,SY+.084,pz,'#e6dfc4',1,.5,1]);// 饭堆：半球压扁
+  const xe=Math.abs(px/.825)>Math.abs(pz/.5),sx=Math.sign(px),sz=Math.sign(pz);// 筷子平放在靠桌沿一侧，与桌沿平行
+  for(const k of [-1,1])P.push(xe?[geoCyl(.006,.0045,.25,5),px+sx*.19+k*.012,SY+.006,pz,'#5e4a33',1,1,1,PI/2]:[geoCyl(.006,.0045,.25,5),px+k*.012,SY+.006,pz+sz*.19,'#5e4a33',1,1,1,0,0,PI/2])}
+ // 鸡：椭圆身、胸脯、两条腿翘起、翅膀贴身、脖颈回折贴在身侧——摆在椭圆浅盘里
+ const cx=-.10,cz=0,cy=SY+.04,gold='#c68b40',dark='#a8702e';
+ P.push([loftGeo([[0,.17,.17],[.012,.18,.18],[.034,.255,.255],[.042,.265,.265]],20),cx,SY,cz,'#bfa886',1,1,.82]);
+ P.push([geoSph(1),cx,cy+.072,cz,gold,.135,.075,.095],[geoSph(1),cx,cy+.10,cz+.02,gold,.09,.05,.07],[geoSph(1),cx-.11,cy+.06,cz+.01,dark,.05,.026,.07],[geoSph(1),cx+.11,cy+.06,cz+.01,dark,.05,.026,.07]);
+ for(const s of [-1,1])P.push([geoCyl(.026,.018,.12,7),cx+s*.075,cy+.08,cz-.085,dark,1,1,1,-.55,0,-s*.85],[geoSph(.02),cx+s*.115,cy+.135,cz-.115,'#d9b07a']);
+ P.push([geoSph(1),cx+.02,cy+.05,cz+.115,dark,.03,.03,.06,0,-.5],[geoSph(.024),cx+.055,cy+.045,cz+.15,dark]);// 脖颈回折，头贴在身侧
+ // 青菜一碗
+ const vx=.31,vz=.05;const vb=bowl(.85);vb[1]=vx;vb[3]=vz;P.push(vb);for(let i=0;i<9;i++){const a=hash(i,3.3)*TAU,r=.028+.055*hash(i,7.7);P.push([geoSph(.03),vx+r*Math.cos(a),SY+.082+.012*hash(i,1.1),vz+r*Math.sin(a),i%2?'#5a7a3a':'#6f8f46',1,.7,1.2,0,a])}
+ // 酒壶与酒盏
+ P.push([loftGeo([[0,.06,.06],[.012,.078,.078],[.10,.112,.112],[.19,.098,.098],[.25,.05,.05],[.30,.046,.046],[.32,.058,.058]],14),.69,SY,-.18,'#6b5e4b'],[geoSph(.03),.69,SY+.34,-.18,'#5a4e3c']);
+ for(const [qx,qz] of [[-.60,-.02],[.60,.06],[.05,-.40],[.05,.40]])P.push([loftGeo([[0,.022,.022],[.006,.027,.027],[.03,.037,.037],[.042,.04,.04]],10),qx,SY,qz,ware],[geoCyl(.033,.033,.004,10),qx,SY+.042,qz,'#6a4a2c']);
+ shapesMesh(P,food);
  food.visible=false;g.userData.food=food;return g;
 }
 function narrativeLabel(text,w,h){const cv=document.createElement('canvas');cv.width=512;cv.height=128;const ctx=cv.getContext('2d');ctx.fillStyle='#6f624a';ctx.fillRect(0,0,512,128);ctx.fillStyle='#d9c8a0';ctx.font='58px "Noto Serif CJK SC",serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(text,256,66);const tx=new T.CanvasTexture(cv);tx.encoding=T.sRGBEncoding;return new T.Mesh(new T.PlaneGeometry(w,h),new T.MeshStandardMaterial({map:tx,roughness:1}));}
