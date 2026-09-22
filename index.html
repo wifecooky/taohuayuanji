@@ -1242,31 +1242,88 @@ function life(){person(-25,-16,'farm',.4,1,'#5b6b8a');person(-3,3,'farm',-.3,1,'
  animal(-33.4,-62.4,'ox',.5);animal(-29.2,-61.5,'ox',-1.1);
  for(const p of [[-26.6,-66.8,.7],[-24.2,-65.2,-1.3],[-27.2,-64.1,2.1],[-23.5,-67.2,.2],[-24.1,-61.9,-1.57]])animal(p[0],p[1],'goat',p[2]);
 }
-/* 溪鱼。一条鱼只是溪上的一个 z：x 由 streamX 决定，深浅与偏移各自带着，
- * 游动就是 z 在自己的一段水面上来回。内中几条锦鲤大些亮些，其余均是杂鱼。 */
-let fishMesh,fishData=[];
+/* 溪鱼。身子是一条纺锤：沿 z 取十四个截面，每圈九点，背深腹浅；
+ * 鳍是几片薄膜，不是盒子。颜色由 instanceColor 再染一遍，所以这里只留明暗。 */
+function fishGeo(){
+ const RN=14,SG=9,pos=[],col=[],idx=[];
+ for(let i=0;i<=RN;i++){const t=i/RN,g=Math.sin(PI*Math.pow(t,.62)),tail=smooth(.60,1,t),
+   rx=mix(g,.11,tail)*.054,ry=mix(g,.20,tail)*.090,z=mix(.30,-.33,t);
+  for(let s=0;s<SG;s++){const a=s/SG*TAU,c=.78+.30*(.5-.5*Math.cos(a));
+   pos.push(Math.sin(a)*rx,Math.cos(a)*ry-.012*g,z);col.push(c,c,c)}}
+ for(let i=0;i<RN;i++)for(let s=0;s<SG;s++){const a=i*SG+s,b=i*SG+(s+1)%SG;idx.push(a,b,a+SG,b,b+SG,a+SG)}
+ const body=new T.BufferGeometry();
+ body.setAttribute('position',new T.Float32BufferAttribute(pos,3));
+ body.setAttribute('color',new T.Float32BufferAttribute(col,3));
+ body.setIndex(idx);body.computeVertexNormals();
+ const flat=body.toNonIndexed(),P=[...flat.attributes.position.array],N=[...flat.attributes.normal.array],C2=[...flat.attributes.color.array];
+ const A=V(),B=V(),D=V(),e1=V(),e2=V(),nv=V();
+ const fin=(a,b,c,v)=>{A.fromArray(a);B.fromArray(b);D.fromArray(c);
+  nv.crossVectors(e1.subVectors(B,A),e2.subVectors(D,A)).normalize();
+  for(const q of [A,B,D]){P.push(q.x,q.y,q.z);N.push(nv.x,nv.y,nv.z);C2.push(v,v,v)}};
+ fin([0,0,-.31],[0,.145,-.53],[0,0,-.42],.88);fin([0,0,-.42],[0,-.145,-.53],[0,0,-.31],.88);// 尾鳍两叶
+ fin([0,.072,.13],[0,.135,.01],[0,.080,-.09],.82);// 背鳍
+ fin([0,-.060,-.05],[0,-.135,-.15],[0,-.048,-.20],.82);// 臀鳍
+ for(const s of [-1,1])fin([s*.038,-.015,.13],[s*.098,-.055,.02],[s*.072,.010,.055],.86);// 胸鳍
+ const geo=new T.BufferGeometry();
+ geo.setAttribute('position',new T.Float32BufferAttribute(P,3));
+ geo.setAttribute('normal',new T.Float32BufferAttribute(N,3));
+ geo.setAttribute('color',new T.Float32BufferAttribute(C2,3));
+ return geo;
+}
+let fishMesh,fishData=[],fishShader=null;
 function fishSchool(){
- const geo=mergedParts([[0,0,0,.115,.15,.34,'#ffffff'],[0,0,.20,.085,.115,.11,'#f4f4f4'],[0,0,-.19,.05,.10,.09,'#ededed'],
-  [0,0,-.30,.022,.21,.15,'#dcdcdc'],[0,.115,-.02,.022,.10,.17,'#e6e6e6'],[0,-.09,.02,.02,.07,.12,'#e6e6e6'],
-  [-.075,-.025,.06,.10,.022,.08,'#ececec',0,0,-.30],[.075,-.025,.06,.10,.022,.08,'#ececec',0,0,.30]]);
  const N=36,drab=['#39432f','#44412c','#2f3a2c','#4e4530','#33403a','#54492f'],koi=['#e85a1e','#f5822a','#f7ab34','#dd4a16','#f0e2c4'];
- fishMesh=new T.InstancedMesh(geo,new T.MeshStandardMaterial({vertexColors:true,roughness:.40,metalness:.14,transparent:true}),N);
+ const geo=fishGeo(),swim=new Float32Array(N*2);
+ geo.setAttribute('aSwim',new T.InstancedBufferAttribute(swim,2));
+ const mat=new T.MeshStandardMaterial({vertexColors:true,roughness:.40,metalness:.14,transparent:true,side:T.DoubleSide});
+ // 摆尾在顶点里做：每条鱼自带相位与频率，三十六条不会齐步走。
+ mat.onBeforeCompile=sh=>{sh.uniforms.swimTime={value:0};
+  sh.vertexShader='uniform float swimTime;attribute vec2 aSwim;\n'+sh.vertexShader.replace('#include <begin_vertex>',
+   '#include <begin_vertex>\nfloat sw=clamp((.30-transformed.z)/.80,0.,1.);transformed.x+=sin(swimTime*aSwim.y+aSwim.x+transformed.z*5.2)*sw*sw*.155;');
+  fishShader=sh};
+ fishMesh=new T.InstancedMesh(geo,mat,N);
  fishMesh.frustumCulled=false;fishMesh.renderOrder=4;scene.add(fishMesh);
  for(let i=0;i<N;i++){const bright=i<5,home=bright?rand(104,140):rand(94,200);
-  fishData.push({home,z:home,pz:home,px:streamX(home),yaw:PI,range:bright?rand(3,5):rand(2.4,6.5),
+  const f={home,z:home,px:streamX(home),yaw:PI,s:0,vz:0,vs:0,until:0,mode:'cruise',tz:home,ts:0,sp:0,
+   range:bright?rand(3,5):rand(2.4,6.5),
    side:bright?(i-2)*.50:rand(-1.25,1.25),speed:rand(.55,1.25),depth:bright?rand(.13,.20):rand(.12,.30),
-   scale:(bright?rand(1.35,1.65):rand(.70,1.25))*.85,p:rand(0,TAU)});
+   scale:(bright?rand(1.35,1.65):rand(.70,1.25))*.65,p:rand(0,TAU)};
+  // 背鳍不能出水：鱼越大吃水越深，吃水深度跟着体型走。
+  f.s=f.ts=f.side;f.deep=.15*f.scale+.06;f.dep=f.td=Math.max(f.depth,f.deep);
+  swim[i*2]=f.p;swim[i*2+1]=5.4+f.speed*2.6;
+  fishData.push(f);
   fishMesh.setColorAt(i,color(bright?pick(koi):pick(drab)))}
  fishMesh.instanceColor.needsUpdate=true;
 }
+// 游动是一连串的“去那里”，不是一条正弦：到了就换一个点，谁也不跟谁同步。
+const fishLat=z=>(2.05+.4*Math.sin(z*.077))*.62;
+function fishPlan(f,t){const r=Math.random();
+ f.mode=r<.17?'dart':r<.60?'hover':'cruise';
+ f.until=t+(f.mode==='dart'?.7+Math.random()*1.1:f.mode==='hover'?1.5+Math.random()*2.0:2.4+Math.random()*3.2);
+ const reach=f.mode==='dart'?f.range*1.15:f.mode==='hover'?f.range*.20:f.range;
+ f.tz=clamp(f.home+(Math.random()*2-1)*reach,90,206);
+ const lat=fishLat(f.tz);
+ f.ts=clamp(f.side+(Math.random()*2-1)*(f.mode==='hover'?.35:1.05),-lat,lat);
+ f.td=clamp(f.depth+(Math.random()*2-1)*.06,f.deep,.34);
+ f.sp=f.speed*(f.mode==='dart'?1.7+Math.random()*.9:f.mode==='hover'?.10+Math.random()*.22:.45+Math.random()*.55);
+}
 function swimFish(t,dt){if(!fishMesh)return;fishMesh.visible=!reduced;
+ if(fishShader)fishShader.uniforms.swimTime.value=t;
+ const st=Math.min(dt,.05),inv=1/Math.max(st,1e-3);
  fishData.forEach((f,i)=>{
-  const target=f.home+f.range*Math.sin(t*f.speed*.13+f.p);
-  f.z+=(target-f.z)*Math.min(1,dt*2.2);
-  const x=streamX(f.z)+f.side+Math.sin(t*.55+f.p)*.13,dx=x-f.px,dz=f.z-f.pz;f.px=x;f.pz=f.z;
-  if(dx*dx+dz*dz>4e-7)f.yaw=Math.atan2(dx,dz);
-  dummy.position.set(x,.045-f.depth+Math.sin(t*.8+f.p)*.02,f.z);
-  dummy.rotation.set(0,f.yaw+Math.sin(t*3.2+f.p)*.22,0);
+  if(t>=f.until)fishPlan(f,t);
+  const dz=f.tz-f.z,ds=f.ts-f.s,d=Math.hypot(dz,ds),ease=Math.min(1,d/.6),k=Math.min(1,st*(f.mode==='dart'?5.5:2.2));
+  f.vz+=((d>1e-4?dz/d*f.sp*ease:0)-f.vz)*k;
+  f.vs+=((d>1e-4?ds/d*f.sp*ease:0)-f.vs)*k;
+  f.z=clamp(f.z+f.vz*st,89,208);f.s+=f.vs*st;
+  const lat=fishLat(f.z);
+  if(f.s>lat){f.s=lat;f.vs=Math.min(f.vs,0)}else if(f.s<-lat){f.s=-lat;f.vs=Math.max(f.vs,0)}
+  f.dep+=(f.td-f.dep)*Math.min(1,st*.9);
+  const x=streamX(f.z)+f.s,vx=(x-f.px)*inv;f.px=x;
+  if(vx*vx+f.vz*f.vz>4e-4){const want=Math.atan2(vx,f.vz);
+   f.yaw+=(((want-f.yaw+PI)%TAU+TAU)%TAU-PI)*Math.min(1,st*3.2)}
+  dummy.position.set(x,.045-f.dep,f.z);
+  dummy.rotation.set(clamp((f.td-f.dep)*1.2,-.22,.22),f.yaw,0);
   dummy.scale.setScalar(f.scale);dummy.updateMatrix();fishMesh.setMatrixAt(i,dummy.matrix)});
  fishMesh.instanceMatrix.needsUpdate=true;
 }
