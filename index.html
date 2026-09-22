@@ -1355,7 +1355,8 @@ function setWeather(name,instant=false){setHour(HOUR_PRESET[name]??HOUR_PRESET.d
 // 时刻是唯一的状态；预设只是几个好看的时辰。
 function setHour(h,instant=false,name=null){
  dayHour=((h%24)+24)%24;
- weatherName=name||(()=>{let best='day',bd=99;for(const k in HOUR_PRESET){const d=Math.min(Math.abs(HOUR_PRESET[k]-dayHour),24-Math.abs(HOUR_PRESET[k]-dayHour));if(d<bd){bd=d;best=k}}return best})();
+ // 按时段归属，不按离预设的远近：10:00 离 8.2 更近，但巳时不是清晨。
+ weatherName=name||(dayHour<4.8||dayHour>=19.8?'night':dayHour<9.2?'morning':dayHour<15.8?'day':'dusk');
  weatherTarget=dayTheme(dayHour);
  document.querySelectorAll('[data-weather]').forEach(b=>{let on=b.dataset.weather===weatherName;b.classList.toggle('active',on);b.setAttribute('aria-pressed',on)});
  document.body.classList.toggle('dusk',weatherTarget.night>.45);
