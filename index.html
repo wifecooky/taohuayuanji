@@ -1034,10 +1034,10 @@ function loftGeo(st,seg=20,fold=0){if(st[st.length-1][0]<st[0][0])st=st.slice().
  for(let i=0;i<seg;i++)idx.push(n0,i,(i+1)%seg,n1,t+(i+1)%seg,t+i);
  const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(pos,3));g.setIndex(idx);g.computeVertexNormals();return g}
 let characterMaterial;
-function shapesMesh(parts,parent){const pp=[],cc=[],nn=[],m=new T.Matrix4(),nm=new T.Matrix3(),obj=new T.Object3D(),v=V(),normal=V();
+function shapesMesh(parts,parent,mat){const pp=[],cc=[],nn=[],m=new T.Matrix4(),nm=new T.Matrix3(),obj=new T.Object3D(),v=V(),normal=V();
  for(let [geo,x,y,z,h,sx=1,sy=1,sz=1,rx=0,ry=0,rz=0] of parts){let g=geo.index?geo.toNonIndexed():geo;obj.position.set(x,y,z);obj.rotation.set(rx,ry,rz);obj.scale.set(sx,sy,sz);obj.updateMatrix();m.copy(obj.matrix);nm.getNormalMatrix(m);let p=g.attributes.position,n=g.attributes.normal,c=color(h);for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i).applyMatrix4(m);normal.fromBufferAttribute(n,i).applyMatrix3(nm).normalize();pp.push(v.x,v.y,v.z);nn.push(normal.x,normal.y,normal.z);cc.push(c.r,c.g,c.b)}if(g!==geo)g.dispose();geo.dispose()}
  const g=new T.BufferGeometry();g.setAttribute('position',new T.Float32BufferAttribute(pp,3));g.setAttribute('color',new T.Float32BufferAttribute(cc,3));g.setAttribute('normal',new T.Float32BufferAttribute(nn,3));g.computeBoundingSphere();
- characterMaterial=characterMaterial||new T.MeshStandardMaterial({vertexColors:true,roughness:.88});const mesh=new T.Mesh(g,characterMaterial);mesh.castShadow=true;mesh.receiveShadow=true;parent.add(mesh);return mesh;
+ characterMaterial=characterMaterial||new T.MeshStandardMaterial({vertexColors:true,roughness:.88});const mesh=new T.Mesh(g,mat||characterMaterial);mesh.castShadow=true;mesh.receiveShadow=true;parent.add(mesh);return mesh;
 }
 
 // 作息表：一个角色只是一段出门的时辰。日出而作，日入而息 —— 深夜田里自然空着，不靠满地的 if 去藏人。
@@ -1137,13 +1137,98 @@ function walkRoute(a,t,dt){const r=a.route;if(r.wait>t)return;
   a.greetAt=b.greetAt=t;stopWalk(a,t,2.9);a.face=Math.atan2(dx,dz);pose(a,'bow',.3);pose(b,b.role==='sit'?'nod':'bow',.3);
   if(b.role!=='sit'){b.ry0=b.ry0??b.root.rotation.y;b.face=Math.atan2(-dx,-dz);b.faceBack=t+2.7}break}}
 let lastAnimT=0;
-// 牲畜的方块表。犬、鸡之外，塘边有水牛，坡上有羊：加一种牲畜是加一行表，不是加一个 if。
-const BEASTS={
- dog:[[0,.47,0,.38,.37,.77,'#a99b7b'],[0,.61,.44,.28,.33,.30,'#a99b7b'],[0,.55,.61,.20,.15,.21,'#b4a282'],[-.13,.77,.43,.12,.20,.14,'#746c55',0,0,-.20],[.13,.77,.43,.12,.20,.14,'#746c55',0,0,.20],[0,.62,-.47,.13,.44,.12,'#a99b7b',-.65],[-.14,.21,.28,.12,.37,.12,'#897e61'],[.14,.21,.28,.12,.37,.12,'#897e61'],[-.14,.21,-.28,.12,.37,.12,'#897e61'],[.14,.21,-.28,.12,.37,.12,'#897e61']],
- ox:[[0,1.12,-.05,.84,.80,1.66,'#5d5d56'],[0,1.18,-.86,.74,.68,.34,'#5d5d56'],[0,1.20,.82,.52,.52,.44,'#63625a'],[0,1.02,1.20,.46,.42,.40,'#6c6b62'],[0,.90,1.44,.30,.26,.22,'#4f4e49'],[-.27,1.24,1.16,.13,.12,.15,'#77766b'],[.27,1.24,1.16,.13,.12,.15,'#77766b'],[-.50,1.28,1.12,.62,.10,.10,'#a8a294',0,-.25,-.26],[.50,1.28,1.12,.62,.10,.10,'#a8a294',0,.25,.26],[0,.86,-1.06,.09,.58,.09,'#54544e',.34],[-.29,.32,.56,.20,.84,.20,'#56564f'],[.29,.32,.56,.20,.84,.20,'#56564f'],[-.29,.32,-.62,.20,.84,.20,'#56564f'],[.29,.32,-.62,.20,.84,.20,'#56564f']],
- goat:[[0,.58,0,.34,.36,.72,'#d6d2c1'],[0,.62,.40,.28,.30,.24,'#dedac9'],[0,.68,.56,.21,.22,.24,'#e4e0cf'],[0,.58,.72,.13,.14,.16,'#b9b3a1'],[-.09,.80,.42,.07,.07,.32,'#8d8675',.60],[.09,.80,.42,.07,.07,.32,'#8d8675',.60],[-.15,.72,.58,.10,.07,.13,'#cac5b3'],[.15,.72,.58,.10,.07,.13,'#cac5b3'],[0,.64,-.40,.08,.22,.08,'#dedac9',-.55],[-.12,.17,.24,.115,.46,.115,'#a39c89'],[.12,.17,.24,.115,.46,.115,'#a39c89'],[-.12,.17,-.24,.115,.46,.115,'#a39c89'],[.12,.17,-.24,.115,.46,.115,'#a39c89']]};
-function animal(x,z,type='hen',angle=0){const g=new T.Group();g.position.set(x,height(x,z)+.10,z);g.rotation.y=angle;scene.add(g);const parts=BEASTS[type]||[[0,.32,0,.29,.28,.43,type==='hen'?'#ded2ac':'#aa8a61'],[0,.50,.19,.17,.25,.16,'#cfb789'],[0,.66,.20,.06,.11,.12,'#9d5c48'],[0,.51,.31,.10,.055,.12,'#bba167'],[0,.41,-.25,.20,.31,.10,'#796f55',-.50],[-.09,.095,0,.026,.20,.031,'#b6975e'],[.09,.095,0,.026,.20,.031,'#b6975e']];
- const body=partsMesh(parts,g);animated.push({type,root:g,body,x,z,ry:angle,phase:rand(0,TAU),shift:SHIFT[type]});return g}
+/* 牲畜。原先是四个火柴盒摞成一头牛：远看是块，近看更是块。
+ * 改用村民那一套放样 —— 躯干一条截面线旋成桶，四条腿、颈、头、尾各自成组。
+ * 分了组才有地方挂动作：低头吃草、甩尾驱蝇、换蹄。表里存的是比例，不是方块，
+ * 加一种牲畜还是加一行表。 */
+const QUAD={
+ ox:{coat:'#6a6960',hoof:'#39382f',horn:'#b0aa96',eye:'#1a1813',seg:13,back:1.06,
+  torso:[[-1.00,.13,.16,.05],[-.80,.33,.36,.03],[-.40,.42,.44,0],[.04,.44,.46,-.02],[.46,.43,.45,-.02],[.74,.34,.36,-.04],[.90,.21,.24,-.04]],
+  lw:.30,hy:.88,fz:.50,hz:-.56,ll:.86,lr:.115,
+  neck:{y:1.26,z:.74,a:.52,len:.50,r0:.28,r1:.165},graze:.62,
+  head:{a:-.80,skull:.165,sc:[.92,1,1.10],muzC:'#78776c',muzY:-.05,
+   muz:[[-.02,.118,.108,0],[.16,.128,.118,.02],[.31,.104,.082,.042]],
+   ear:{x:.19,y:.065,z:-.03,r:.052,s:[1.9,.45,.95],rz:.50},
+   horn:{x:.13,y:.155,z:.01,len:.21,r:.038,rz:1.00,rx:-.05,tip:.17,k2:.38,rx2:-.10}},
+  tail:{y:1.20,z:-1.00,a:.22,len:.64,r:.042,tuft:.078}},
+ goat:{coat:'#d8d4c3',hoof:'#4a453a',horn:'#8d8675',eye:'#211e19',seg:11,back:.60,
+  torso:[[-.50,.08,.10,.03],[-.38,.17,.19,.02],[-.16,.20,.21,0],[.06,.21,.215,-.01],[.28,.20,.21,-.01],[.42,.16,.17,-.02],[.52,.09,.11,-.02]],
+  lw:.135,hy:.49,fz:.26,hz:-.28,ll:.47,lr:.055,
+  neck:{y:.71,z:.40,a:.46,len:.30,r0:.125,r1:.078},graze:.80,
+  head:{a:-.74,skull:.078,sc:[.90,1,1.08],muzC:'#e6e2d1',muzY:-.028,
+   muz:[[-.01,.056,.050,0],[.08,.058,.050,.010],[.16,.042,.034,.020]],
+   ear:{x:.075,y:.042,z:-.03,r:.030,s:[2.5,.5,1.1],rz:-.60},
+   horn:{x:.046,y:.070,z:-.025,len:.13,r:.024,rz:.30,rx:-1.00,tip:.11,k2:1.0,rx2:.60}},
+  tail:{y:.66,z:-.52,a:2.70,len:.15,r:.024,tuft:0}},
+ dog:{coat:'#a99b7b',hoof:'#7b7058',horn:0,eye:'#191612',seg:11,back:.44,
+  torso:[[-.34,.06,.07,.02],[-.26,.14,.15,.01],[-.10,.16,.165,0],[.05,.165,.17,-.01],[.20,.155,.16,-.02],[.30,.125,.13,-.03],[.36,.065,.075,-.03]],
+  lw:.105,hy:.36,fz:.20,hz:-.21,ll:.35,lr:.046,
+  neck:{y:.50,z:.26,a:.62,len:.19,r0:.115,r1:.084},graze:.55,
+  head:{a:-.62,skull:.098,sc:[.92,.95,1.1],muzC:'#b6a888',muzY:-.03,
+   muz:[[-.01,.064,.058,0],[.10,.062,.055,.012],[.19,.046,.040,.020]],
+   ear:{x:.068,y:.088,z:-.030,r:.042,s:[.85,1.30,.45],rz:.26},
+   horn:0},
+  tail:{y:.50,z:-.34,a:2.35,len:.28,r:.026,curl:-.06,tuft:0}}};
+let beastMat;
+// 牲畜自带一份平面着色的材质：characterMaterial 是全村共用的单例，毛皮要的是硬面。
+const beastMaterial=()=>beastMat||(beastMat=new T.MeshStandardMaterial({vertexColors:true,roughness:.93,flatShading:true}));
+function quadruped(type,g,rec){
+ const S=QUAD[type],M=beastMaterial(),H=S.head,body=new T.Group();body.name='body';g.add(body);
+ // 躯干：截面线沿 y 放样，再放倒，桶身便顺着前后。
+ shapesMesh([[loftGeo(S.torso,S.seg),0,S.back,0,S.coat,1,1,1,PI/2]],body,M);
+ const legs=[],ll=S.ll,lr=S.lr;
+ for(const [sx,sz] of [[-1,S.fz],[1,S.fz],[-1,S.hz],[1,S.hz]]){
+  const L=new T.Group();L.position.set(sx*S.lw,S.hy,sz);body.add(L);
+  shapesMesh([[loftGeo([[0,lr*1.45,lr*1.5,0],[-ll*.42,lr,lr,0],[-ll*.80,lr*.66,lr*.70,0],[-ll+.06,lr*.58,lr*.60,0]],10),0,0,0,S.coat],
+   [loftGeo([[-ll+.07,lr*.70,lr*.64,0,3],[-ll,lr*.80,lr*.72,.010,3]],10),0,0,0,S.hoof]],L,M);
+  legs.push(L)}
+ const N=S.neck,neck=new T.Group();neck.position.set(0,N.y,N.z);neck.rotation.x=N.a;body.add(neck);
+ shapesMesh([[loftGeo([[0,N.r0,N.r0*1.05,0],[N.len*.55,N.r0*.76,N.r0*.84,0],[N.len,N.r1,N.r1*1.05,0]],12),0,0,0,S.coat]],neck,M);
+ const head=new T.Group();head.position.set(0,N.len,0);head.rotation.x=H.a;neck.add(head);
+ const k=H.skull,hp=[[geoSph(k),0,0,k*.12,S.coat,H.sc[0],H.sc[1],H.sc[2]],
+  [loftGeo(H.muz,12),0,H.muzY,0,H.muzC,1,1,1,PI/2],
+  [geoSph(k*.17),-k*.74,k*.30,k*.55,H.eye,1,1,.6],[geoSph(k*.17),k*.74,k*.30,k*.55,H.eye,1,1,.6]];
+ const E=H.ear;
+ for(const s of [-1,1])hp.push([geoSph(E.r),s*E.x,E.y,E.z,S.coat,E.s[0],E.s[1],E.s[2],0,0,-s*E.rz]);
+ if(H.horn){const R=H.horn,o=new T.Object3D();
+  for(const s of [-1,1]){o.rotation.set(R.rx,0,-s*R.rz);o.updateMatrix();const e=V(0,R.len,0).applyMatrix4(o.matrix);
+   hp.push([loftGeo([[0,R.r,R.r,0],[R.len*.55,R.r*.74,R.r*.74,0],[R.len,R.r*.62,R.r*.62,0]],8),s*R.x,R.y,R.z,S.horn,1,1,1,R.rx,0,-s*R.rz]);
+   hp.push([loftGeo([[0,R.r*.62,R.r*.62,0],[R.tip*.55,R.r*.38,R.r*.38,0],[R.tip,R.r*.10,R.r*.10,0]],8),s*R.x+e.x,R.y+e.y,R.z+e.z,S.horn,1,1,1,R.rx+R.rx2,0,-s*R.rz*R.k2])}}
+ shapesMesh(hp,head,M);
+ const A=S.tail,tail=new T.Group();tail.position.set(0,A.y,A.z);tail.rotation.x=A.a;body.add(tail);
+ const c=A.curl||0,tp=[[loftGeo([[0,A.r,A.r,0],[-A.len*.6,A.r*.7,A.r*.7,c*.45],[-A.len,A.r*.5,A.r*.5,c]],8),0,0,0,S.coat]];
+ if(A.tuft)tp.push([geoSph(A.tuft),0,-A.len-A.tuft*.5,0,S.hoof,.75,1.5,.75]);
+ shapesMesh(tp,tail,M);
+ rec.body=body;rec.legs=legs;rec.neck=neck;rec.head=head;rec.tail=tail;rec.na=N.a;rec.nd=S.graze;rec.ha=H.a;
+}
+
+// 鸡：蛋身前俯，尾羽上翘，颈头单独一组 —— 啄食靠转颈，不是整只翻跟头。
+const HEN={body:'#ded2ac',wing:'#c9bc92',head:'#e6dcbb',comb:'#b04a3c',beak:'#d9a93f',leg:'#b6975e',eye:'#20201a'};
+function fowl(g,rec){
+ const M=beastMaterial(),body=new T.Group();body.name='body';g.add(body);
+ const bp=[[loftGeo([[-.17,.055,.062,0],[-.05,.108,.115,0],[.07,.112,.118,0],[.17,.062,.072,0]],11),0,.235,0,HEN.body,1,1,1,PI/2+.26]];
+ for(const s of [-1,1])bp.push([geoSph(.072),s*.082,.245,.01,HEN.wing,.42,.95,1.35,0,0,-s*.12]);
+ // 尾羽：三片薄板，中间一片高些。
+ for(let i=-1;i<2;i++)bp.push([geoBox(),i*.030,.318+(1-Math.abs(i))*.026,-.163,HEN.wing,.018,.125,.045,-.72,0,i*.30]);
+ for(const s of [-1,1]){bp.push([loftGeo([[0,.018,.018,0],[-.145,.013,.013,0]],7),s*.052,.185,-.005,HEN.leg]);
+  bp.push([geoBox(),s*.052,-.055+.185-.145+.012,.028,HEN.leg,.036,.022,.085])}
+ shapesMesh(bp,body,M);
+ const neck=new T.Group();neck.name='neck';neck.position.set(0,.325,.095);neck.rotation.x=.16;body.add(neck);
+ shapesMesh([[loftGeo([[0,.048,.050,0],[.055,.038,.040,0],[.105,.033,.035,0]],10),0,0,0,HEN.head]],neck,M);
+ const head=new T.Group();head.name='head';head.position.set(0,.105,0);head.rotation.x=-.22;neck.add(head);
+ const hp=[[geoSph(.050),0,.010,.006,HEN.head,.92,1,1.04],
+  [loftGeo([[0,.026,.024,0],[.038,.016,.013,0],[.062,.004,.003,0]],7),0,-.002,.034,HEN.beak,1,1,1,PI/2],
+  [geoSph(.017),0,-.030,.030,HEN.comb,1,1.25,.7],
+  [geoSph(.015),-.034,.028,.022,HEN.eye,1,1,.6],[geoSph(.015),.034,.028,.022,HEN.eye,1,1,.6]];
+ for(let i=0;i<3;i++)hp.push([geoBox(),0,.052+(i==1?.010:0),.026-i*.030,HEN.comb,.012,.034+(i==1?.012:0),.024]);
+ shapesMesh(hp,head,M);
+ rec.body=body;rec.neck=neck;rec.head=head;
+}
+function animal(x,z,type='hen',angle=0){const g=new T.Group();g.rotation.y=angle;scene.add(g);
+ const rec={type,root:g,x,z,ry:angle,phase:rand(0,TAU),shift:SHIFT[type]};
+ if(QUAD[type]){g.position.set(x,height(x,z)+.02,z);quadruped(type,g,rec)}
+ else{g.position.set(x,height(x,z)+.02,z);fowl(g,rec)}
+ animated.push(rec);return g}
 function life(){person(-25,-16,'farm',.4,1,'#5b6b8a');person(-3,3,'farm',-.3,1,'#a67b4e');person(21,-10,'chat',1.1,1,'#4c5f7d');person(22.7,-10.7,'chat',-1.1,.95,'#c7b48f',{female:true});person(-12.7,9.1,'water',-1.9,1,'#9a7d8a',{female:true});person(32.1,-3.8,'sit',.25,1,'#7d5a40',{hair:'#c9c0a4',beard:'#b7b0a0'});person(21.7,-5.1,'water',-1,.97,'#5d6f8f',{female:true});person(25,3,'child',-.6,1,'#c26d5a',{route:[[27.5,3.6],[25.6,5.5],[23.7,3.6],[25.6,1.7]],loop:true,speed:2.3});person(26.1,4,'child',1.1,.95,'#d9c9a2',{route:[[27.5,3.6],[25.6,5.5],[23.7,3.6],[25.6,1.7]],loop:true,speed:2.3,u0:.45});person(45,-30,'chat',2.7,1,'#8a6b52');person(streamX(96)-3.7,96,'chat',-.25,.97,'#6c7c8f',{work:true,fisher:true,shift:[0,24]});
  person(7,15,'chat',0,1,'#5e6f86',{route:[[6.6,15.2],[12.5,8.6],[18.6,2.3],[20.1,-8.2]],speed:1.15,phase:1.3});person(-9,-5,'chat',0,.96,'#a8896a',{female:true,route:[[-9,-4.6],[6,-1.6],[17,-3.6],[30,-4.6]],speed:1.0,u0:.5,phase:4.1});
  animal(29,1,'dog',1.5);for(let p of [[35,-4],[36,-3],[37,-4.8],[16,-4.7],[15,-5.5]])animal(...p,'hen',rand(0,TAU));
@@ -1151,7 +1236,7 @@ function life(){person(-25,-16,'farm',.4,1,'#5b6b8a');person(-3,3,'farm',-.3,1,'
  box(32.3,.67,-4.1,2.4,.16,.53,'#8e7f60');for(let x of [31.4,33.2])box(x,.42,-4.1,.16,.4,.40,'#6e634f');beam([40.8,.55,-29.9],[40.4,2.10,-30.1],.045,'#9c855b','detail');box(40.8,.58,-29.9,.55,.08,.12,'#82755c','detail');
  // 牛羊都在瀑布下游的圈里，不再散在池边村东：田不被踩，水不受污。
  animal(-33.4,-62.4,'ox',.5);animal(-29.2,-61.5,'ox',-1.1);
- for(const p of [[-26.6,-66.8,.7],[-24.2,-65.2,-1.3],[-27.2,-64.1,2.1],[-23.5,-67.2,.2],[-25.4,-61.6,-2.4]])animal(p[0],p[1],'goat',p[2]);
+ for(const p of [[-26.6,-66.8,.7],[-24.2,-65.2,-1.3],[-27.2,-64.1,2.1],[-23.5,-67.2,.2],[-24.1,-61.9,-1.57]])animal(p[0],p[1],'goat',p[2]);
 }
 /* 溪鱼。一条鱼只是溪上的一个 z：x 由 streamX 决定，深浅与偏移各自带着，
  * 游动就是 z 在自己的一段水面上来回。内中几条锦鲤大些亮些，其余均是杂鱼。 */
@@ -1189,7 +1274,7 @@ function atmosphereDetails(){makeBlossomWeather();
  const scount=smokeSources.length*9;smokeData=[];smokeMesh=new T.InstancedMesh(new T.IcosahedronGeometry(1,1),unlitNight(new T.MeshBasicMaterial({color:C('#d4d6c4'),transparent:true,opacity:.045,depthWrite:false})),scount);smokeMesh.frustumCulled=false;scene.add(smokeMesh);for(let i=0;i<scount;i++)smokeData.push({root:smokeSources[Math.floor(i/9)],offset:(i%9)/9,phase:rand(0,TAU)});
 }
 function animateWorld(t){const dt=Math.min(.07,Math.max(0,t-lastAnimT));lastAnimT=t;for(let a of animated){const duty=onDuty(a.shift);if(a.root.visible!==duty)a.root.visible=duty;if(!duty)continue;
-  let v=t*.55+a.phase;if(a.type==='human'){a.mixer.update(dt);if(a.route)walkRoute(a,t,dt);if(a.faceBack&&t>a.faceBack){a.face=a.ry0;a.faceBack=0}if(a.face!=null){const d=a.face-a.root.rotation.y;a.root.rotation.y+=Math.atan2(Math.sin(d),Math.cos(d))*Math.min(1,dt*5)}}else if(a.type==='hen'){a.body.rotation.x=Math.max(0,Math.sin(v*2))*.30;a.root.position.x=a.x+Math.sin(v*.20)*.24;a.root.position.z=a.z+Math.sin(v*.24)*.16}else if(a.type==='ox'){a.body.rotation.x=(.5+.5*Math.sin(v*.22))*.07;a.root.rotation.y=a.ry+.09*Math.sin(v*.12)}else if(a.type==='goat'){a.body.rotation.x=Math.max(0,Math.sin(v*.55))*.10;a.root.rotation.y=a.ry+.22*Math.sin(v*.17);a.root.position.x=a.x+Math.sin(v*.13)*.55;a.root.position.z=a.z+Math.sin(v*.16)*.42}else if(a.type==='dog'){a.root.rotation.y=1.5+.17*Math.sin(v*.4);a.root.position.x=a.x+.3*Math.sin(v*.2)}}
+  let v=t*.55+a.phase;if(a.type==='human'){a.mixer.update(dt);if(a.route)walkRoute(a,t,dt);if(a.faceBack&&t>a.faceBack){a.face=a.ry0;a.faceBack=0}if(a.face!=null){const d=a.face-a.root.rotation.y;a.root.rotation.y+=Math.atan2(Math.sin(d),Math.cos(d))*Math.min(1,dt*5)}}else if(a.type==='hen'){const b=Math.max(0,Math.sin(v*2));a.neck.rotation.x=.16+b*.95;a.head.rotation.x=-.22-b*.30;a.body.rotation.x=b*.10;a.root.position.x=a.x+Math.sin(v*.20)*.24;a.root.position.z=a.z+Math.sin(v*.24)*.16;a.root.rotation.y=a.ry+.5*Math.sin(v*.19)}else if(a.type==='ox'){const b=clamp(Math.sin(v*.22)*1.6,0,1);a.neck.rotation.x=a.na+b*a.nd;a.head.rotation.x=a.ha-b*a.nd*.55;a.tail.rotation.z=Math.sin(v*1.6)*.26;a.root.rotation.y=a.ry+.09*Math.sin(v*.12);a.legs[0].rotation.x=Math.sin(v*.31)*.045;a.legs[3].rotation.x=-Math.sin(v*.31)*.045}else if(a.type==='goat'){const b=clamp(Math.sin(v*.55)*1.8,0,1);a.neck.rotation.x=a.na+b*a.nd;a.head.rotation.x=a.ha-b*a.nd*.5;a.tail.rotation.z=Math.sin(v*2.6)*.35;a.root.rotation.y=a.ry+.22*Math.sin(v*.17);a.root.position.x=a.x+Math.sin(v*.13)*.55;a.root.position.z=a.z+Math.sin(v*.16)*.42;a.legs[1].rotation.x=Math.sin(v*.44)*.07;a.legs[2].rotation.x=-Math.sin(v*.44)*.07}else if(a.type==='dog'){a.tail.rotation.z=Math.sin(v*5.2)*.62;a.neck.rotation.x=a.na-Math.max(0,Math.sin(v*.37))*.22;a.head.rotation.y=Math.sin(v*.63)*.42;a.root.rotation.y=1.5+.17*Math.sin(v*.4);a.root.position.x=a.x+.3*Math.sin(v*.2)}}
  if(petalMesh){petalMesh.visible=!reduced;petalData.forEach((p,i)=>{let dur=(p.y-p.floor)/p.speed,tt=(t+p.p*2)%dur,y=p.y-tt*p.speed;dummy.position.set(p.x+Math.sin(tt*.35+p.p)*.8+tt*.015,y,p.z+Math.cos(tt*.22+p.p)*.4);dummy.rotation.set(tt*.45+p.p,tt*.32,p.p+tt*.4);dummy.scale.setScalar(.65+.35*Math.sin(p.p)**2);dummy.updateMatrix();petalMesh.setMatrixAt(i,dummy.matrix)});petalMesh.instanceMatrix.needsUpdate=true}
  if(smokeMesh){smokeMesh.visible=!reduced&&cooking();smokeData.forEach((p,i)=>{let f=(p.offset+t*.020)%1,s=.21+f*.65;dummy.position.set(p.root.x+f*f*1.7,p.root.y+f*4.5,p.root.z+f*.7+Math.sin(f*4+p.phase)*.09);dummy.rotation.set(f*.4,p.phase,f*.15);dummy.scale.set(s,s*.72,s);dummy.updateMatrix();smokeMesh.setMatrixAt(i,dummy.matrix)});smokeMesh.instanceMatrix.needsUpdate=true}
  swimFish(t,dt);if(hazeMesh){hazeMesh.visible=!reduced;hazeData.forEach((m,i)=>{const a=m.a+t*m.drift,x=89*m.r*Math.cos(a),z=-13+85*m.r*Math.sin(a);
