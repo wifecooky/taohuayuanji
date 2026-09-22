@@ -871,7 +871,7 @@ const ez={},ezSeasons={
  summer:{pal:[['#597966','#65816b','#718b70','#7d977c','#86a085','#93aa8d','#9db494'],['#66853f','#739246','#819f50','#8fab5c','#9db76a','#abc27a','#b9cc8a'],['#456a5e','#4e7667','#588272','#638e7d','#709989','#7ea495','#8daea1'],['#3d5a34','#47683c','#527646','#5f8351','#6c905e','#7a9c6b','#89a879']],far:[0,3]},
  autumn:{pal:[['#7a2e24','#8d3a2a','#a04632','#b2543a','#c26443','#cf7550','#d9885e'],['#a25a22','#b3682a','#c37734','#d1863f','#dc964c','#e4a65c','#ebb56e'],['#9a8a2a','#ad9c32','#bfad3c','#cdbb48','#d9c85a','#e2d26e','#e9db84'],['#5c6f34','#6a7d3b','#788b44','#86984e','#94a45a','#a1af68','#aeba78']],far:[0,2]},
  winter:{pal:[['#6b5a3a','#775f3c','#83693f','#8e7344','#997d4b','#a48854','#ad935e'],['#8a7a3a','#978640','#a39247','#ae9d4f','#b8a85a','#c1b267','#c9bb76'],['#4f5a3a','#586440','#616e47','#6a784e','#748257','#7e8c61','#88966c'],['#5f6b5a','#697562','#737f6b','#7d8974','#87937e','#919d88','#9ba793']],far:[2,3],leaves:.35}},
- ezSeason=(()=>{const q=new URLSearchParams(location.search).get('season');if(ezSeasons[q])return q;const m=new Date().getMonth()+1;return m<3||m>11?'winter':m<6?'spring':m<9?'summer':'autumn'})(),ezS=ezSeasons[ezSeason],ezTint=['#ffffff','#f3efd4','#d8e9df','#e4ecc2','#f2e6cc','#cfe0d4'],ezBark=['#5b6550','#66705a','#4f5946'];
+ ezSeason=(()=>{const q=new URLSearchParams(location.search).get('season');return ezSeasons[q]?q:realSeason()})(),ezS=ezSeasons[ezSeason],ezTint=['#ffffff','#f3efd4','#d8e9df','#e4ecc2','#f2e6cc','#cfe0d4'],ezBark=['#5b6550','#66705a','#4f5946'];
 function ezOptions(seed,leaf,far){const L=30;return{seed,type:'deciduous',bark:{textured:false},
  branch:{levels:2,angle:{1:55,2:50},children:{0:far?3:4,1:far?2:3},force:{direction:{x:0,y:1,z:0},strength:-.01},gnarliness:{0:.08,1:.12,2:.15},length:{0:L,1:L*.55,2:L*.3},radius:{0:L*.045,1:L*.028,2:L*.018},
   sections:{0:far?4:6,1:far?3:4,2:3},segments:{0:far?4:6,1:far?3:4,2:3},start:{1:.45,2:.3},taper:{0:.6,1:.6,2:.7}},
@@ -1080,9 +1080,8 @@ function life(){person(-25,-16,'farm',.4,1,'#5b6b8a');person(-3,3,'farm',-.3,1,'
  for(const p of [[-26.6,-66.8,.7],[-24.2,-65.2,-1.3],[-27.2,-64.1,2.1],[-23.5,-67.2,.2],[-25.4,-61.6,-2.4]])animal(p[0],p[1],'goat',p[2]);
 }
 /* 溪鱼。一条鱼只是溪上的一个 z：x 由 streamX 决定，深浅与偏移各自带着，
- * 游动就是 z 在自己的一段水面上来回。领头的几条不自己游 —— 故事把 fishLeadZ 递给它们，
- * 它们便走在渔舟前头，一路引到水尽处。一套参数，两种用法，不必两套鱼。 */
-let fishMesh,fishData=[],fishLeadZ=null;
+ * 游动就是 z 在自己的一段水面上来回。内中几条锦鲤大些亮些，其余均是杂鱼。 */
+let fishMesh,fishData=[];
 function fishSchool(){
  const geo=mergedParts([[0,0,0,.115,.15,.34,'#ffffff'],[0,0,.20,.085,.115,.11,'#f4f4f4'],[0,0,-.19,.05,.10,.09,'#ededed'],
   [0,0,-.30,.022,.21,.15,'#dcdcdc'],[0,.115,-.02,.022,.10,.17,'#e6e6e6'],[0,-.09,.02,.02,.07,.12,'#e6e6e6'],
@@ -1090,17 +1089,16 @@ function fishSchool(){
  const N=36,drab=['#39432f','#44412c','#2f3a2c','#4e4530','#33403a','#54492f'],koi=['#e85a1e','#f5822a','#f7ab34','#dd4a16','#f0e2c4'];
  fishMesh=new T.InstancedMesh(geo,new T.MeshStandardMaterial({vertexColors:true,roughness:.40,metalness:.14,transparent:true}),N);
  fishMesh.frustumCulled=false;fishMesh.renderOrder=4;scene.add(fishMesh);
- for(let i=0;i<N;i++){const lead=i<5,home=lead?rand(104,140):rand(94,200);
-  fishData.push({lead,home,z:home,pz:home,px:streamX(home),yaw:PI,range:lead?rand(3,5):rand(2.4,6.5),
-   side:lead?(i-2)*.50:rand(-1.25,1.25),speed:rand(.55,1.25),depth:lead?rand(.13,.20):rand(.12,.30),
-   scale:(lead?rand(1.35,1.65):rand(.70,1.25))*.85,p:rand(0,TAU)});
-  fishMesh.setColorAt(i,color(lead?pick(koi):pick(drab)))}
+ for(let i=0;i<N;i++){const bright=i<5,home=bright?rand(104,140):rand(94,200);
+  fishData.push({home,z:home,pz:home,px:streamX(home),yaw:PI,range:bright?rand(3,5):rand(2.4,6.5),
+   side:bright?(i-2)*.50:rand(-1.25,1.25),speed:rand(.55,1.25),depth:bright?rand(.13,.20):rand(.12,.30),
+   scale:(bright?rand(1.35,1.65):rand(.70,1.25))*.85,p:rand(0,TAU)});
+  fishMesh.setColorAt(i,color(bright?pick(koi):pick(drab)))}
  fishMesh.instanceColor.needsUpdate=true;
 }
 function swimFish(t,dt){if(!fishMesh)return;fishMesh.visible=!reduced;
  fishData.forEach((f,i)=>{
-  const led=f.lead&&fishLeadZ!=null,
-   target=led?Math.max(92.4,fishLeadZ-Math.abs(f.side)*1.3):f.home+f.range*Math.sin(t*f.speed*.13+f.p);
+  const target=f.home+f.range*Math.sin(t*f.speed*.13+f.p);
   f.z+=(target-f.z)*Math.min(1,dt*2.2);
   const x=streamX(f.z)+f.side+Math.sin(t*.55+f.p)*.13,dx=x-f.px,dz=f.z-f.pz;f.px=x;f.pz=f.z;
   if(dx*dx+dz*dz>4e-7)f.yaw=Math.atan2(dx,dz);
@@ -1173,6 +1171,7 @@ function skyVec(hour,decl){const H=(hour-12)/12*PI,sd=Math.sin(decl),cd=Math.cos
 // 月相取真实朔望：自 2000 年首朔起算，二十九日半一轮。
 const moonPhase=((Date.now()/86400000+2440587.5-2451550.26)/29.530588853%1+1)%1;
 function realHour(){const d=new Date();return d.getHours()+d.getMinutes()/60}
+function realSeason(){const m=new Date().getMonth()+1;return m<3||m>11?'winter':m<6?'spring':m<9?'summer':'autumn'}
 const HOUR_PRESET={morning:8.2,day:12,dusk:17.7,night:22.2};
 let dayHour=(()=>{const q=parseFloat(new URLSearchParams(location.search).get('hour'));return isFinite(q)?((q%24)+24)%24:realHour()})(),skyKind=(()=>{const q=new URLSearchParams(location.search).get('sky');return q&&SKIES[q]?q:'clear'})(),weatherName='morning',weatherTarget,weatherChanging=false,reflectionDirty=true,lastReflectCamera=V(1e4,0,0),lastReflectRotation=new T.Quaternion();let lastReflectFov=0;
 function dayTheme(h){h=((h%24)+24)%24;let i=DAYKEYS.length-1;while(i>0&&DAYKEYS[i].h>h)i--;
@@ -1305,7 +1304,9 @@ function wireUI(){$('pause').classList.toggle('active',paused);$('pause').setAtt
  document.querySelectorAll('[data-sky]').forEach(b=>b.onclick=()=>setSky(b.dataset.sky));
  document.querySelectorAll('[data-season]').forEach(b=>{b.classList.toggle('active',b.dataset.season===ezSeason);b.setAttribute('aria-pressed',b.dataset.season===ezSeason);b.onclick=()=>setSeason(b.dataset.season)});
  $('hour').oninput=e=>setHour(Number(e.target.value)/60,true);
- $('hour-now').onclick=()=>{setHour(realHour(),false);toast('已对到此刻：'+clockText(dayHour)+'。')};
+ $('hour-now').onclick=()=>{setHour(realHour(),false);const s=realSeason();
+  if(s===ezSeason)return toast('已对到此刻：'+clockText(dayHour)+'。');
+  toast('已对到此刻：'+clockText(dayHour)+' · '+document.querySelector('[data-season="'+s+'"]').textContent+'，重展山水。');setSeason(s)};
  $('skyctl').onclick=()=>{const on=$('sky-panel').classList.toggle('open');$('skyctl').setAttribute('aria-pressed',on)};$('home').onclick=()=>setShot(2);$('pause').onclick=togglePaused;$('quality').onclick=()=>{setQuality(quality==='high'?'light':'high');toast(quality==='high'?'高画质：柔和阴影与水面倒影。':'轻量模式：降低分辨率与阴影成本，关闭实时倒影。')};$('audio').onclick=toggleAudio;$('capture').onclick=capture;$('hide').onclick=hideUI;$('restore').onclick=hideUI;$('help').onclick=()=>$('help-panel').classList.toggle('open');$('guide-start').onclick=startTour;$('guide-pause').onclick=()=>{tour.paused=!tour.paused;$('guide-pause').textContent=tour.paused?'继续':'暂停'};$('guide-stop').onclick=()=>{stopTour();toast('已停驻。可转动视角，或选择五境继续游览。')};$('guide-skip').onclick=()=>setShot(2);
  const canvas=$('view'),pointers=new Map();let drag=0,start=null,pinch=0;canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});drag=0;start={x:e.clientX,y:e.clientY};if(pointers.size===2){let a=[...pointers.values()];pinch=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y)}});canvas.addEventListener('pointermove',e=>{if(!pointers.has(e.pointerId))return;let old=pointers.get(e.pointerId),dx=e.clientX-old.x,dy=e.clientY-old.y;drag+=Math.abs(dx)+Math.abs(dy);pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});if(pointers.size===1)rotate(dx,dy);else if(pointers.size===2){let a=[...pointers.values()],dist=Math.hypot(a[0].x-a[1].x,a[0].y-a[1].y);if(pinch>0&&dist>0)zoom(pinch/dist);pinch=dist}});let lastTap=0,tapX=0,tapY=0;canvas.addEventListener('pointerup',e=>{pointers.delete(e.pointerId);if(drag<5&&start&&!story.active){const now=performance.now(),twice=now-lastTap<380&&Math.hypot(e.clientX-tapX,e.clientY-tapY)<24;lastTap=twice?0:now;tapX=e.clientX;tapY=e.clientY;if(twice&&landAt(e.clientX,e.clientY)){start=null;return}}start=null});canvas.addEventListener('pointercancel',e=>pointers.delete(e.pointerId));canvas.addEventListener('wheel',e=>{e.preventDefault();zoom(Math.exp(clamp(e.deltaY,-120,120)*.0014))},{passive:false});canvas.addEventListener('contextmenu',e=>e.preventDefault());
  document.addEventListener('keydown',e=>{if(e.defaultPrevented||ownsKeyboard(e)||e.altKey||e.ctrlKey||e.metaKey||e.repeat)return;if(e.key===' '){e.preventDefault();if(tour.active){tour.paused=!tour.paused;$('guide-pause').textContent=tour.paused?'继续':'暂停'}else togglePaused()}else if(/^[1-5]$/.test(e.key))setShot(Number(e.key)-1);else if(e.key.toLowerCase()==='r')setShot(2);else if(e.key.toLowerCase()==='h')hideUI();else if(e.key.toLowerCase()==='p')capture();else if(e.key==='Home'){if(manualLook)setShot(activeShot)}else if(e.key==='Escape'){if(tour.active)stopTour();else if(manualLook)setShot(activeShot);document.body.classList.remove('hidden-ui');$('help-panel').classList.remove('open')}});
@@ -1414,8 +1415,6 @@ function applyNarrativeWorld(i,u){
  story.marks=i>15?3:i===15?[.24,.53,.80].filter(v=>u>v).length:0;trailMarks.forEach((g,j)=>g.visible=on&&((i===15&&u>[.24,.53,.80][j])||i>15));
  if(storyFisher){storyFisher.visible=!on||i===3||i===8||i===13||i===16;if(!on||i===3){storyFisher.position.set(streamX(96)-3.7,Math.max(.43,height(streamX(96)-3.7,96))+.1,96);storyFisher.rotation.y=2.5}else if(i===8){storyFisher.position.set(18.1,.55,-9.3);faceToward(storyFisher,21,-10)}else if(i===13){storyFisher.position.set(36.2,.55,-27.6);faceToward(storyFisher,38.8,-30)}else if(i===16){storyFisher.position.set(-24.3,.55,260);faceToward(storyFisher,-23,256.8)}}
  if(on&&(i<3||i===15||i===17)){let z=i===0?mix(225,205,u):i===1?mix(205,158,u):i===2?mix(158,96,u):i===15?mix(96,177,smooth(.07,1,u)):mix(167,125,u);fisherBoat.position.set(streamX(z)+.35,.07,z);fisherBoat.rotation.y=Math.atan2(streamX(z-1)-streamX(z+1),-2);if(i===15)fisherBoat.rotation.y+=PI;dockRope.visible=false;boatPaddle.rotation.y=.055*Math.sin(story.elapsed*.9)}else dockBoat();
- // 引路的几条鱼走在渔舟前头；舍舟时停在水尽处，渔人便从那里上岸入山。
- fishLeadZ=on?(i<3?fisherBoat.position.z-5.4:i===3?mix(93.6,92.5,u):null):null;
  if(on&&i===17){const z=mix(167,125,u);searchParty.forEach((g,k)=>{const zz=z-4+k*2.9;g.position.set(streamX(zz)-3.7,height(streamX(zz)-3.7,zz)+.1,zz);g.rotation.y=PI})}
  if(on&&i===18)searchParty.forEach((g,k)=>{const zz=125+k*2;g.position.set(streamX(zz)-3.7,height(streamX(zz)-3.7,zz)+.1,zz);g.rotation.y=-1.6})
 }
