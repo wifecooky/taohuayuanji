@@ -1466,7 +1466,11 @@ void main(){
   vec2 sp=vec2(atan(d.z,d.x)*2.2,asin(clamp(d.y,-1.,1.))*3.4)*11.;
   vec2 cell=floor(sp),f=fract(sp);float r=h21(cell);
   if(r>.82){vec2 o=vec2(h21(cell+11.3),h21(cell+27.1));
-   c+=vec3(.82,.88,1.)*smoothstep(.085,0.,length(f-o))*starAmount*(.72+.28*sin(time*1.7+r*57.))*(.35+.85*(r-.82)/.18)*smoothstep(0.,.16,d.y);}
+   // 闪烁是大气抖的，不是星星自己在忔：两条不同周期的正弦相乘，每颗星一个频率，永不对齐；
+   // 越靠地平线穿过的大气越厚，闪得越狠，天顶几乎不动。亮了稍胖，暗下去就瘦成一粒。
+   float sc=.45+.55*smoothstep(.85,.05,d.y);
+   float tw=1.-sc*(1.-(.5+.5*sin(time*(1.1+r*3.3)+r*57.))*(.55+.45*sin(time*(.63+r*1.7)+r*23.)));
+   c+=vec3(.82,.88,1.)*smoothstep(.085*(.62+.38*tw),0.,length(f-o))*starAmount*tw*(.35+.85*(r-.82)/.18)*smoothstep(0.,.16,d.y);}
  }
  // 日：先晕后轮。
  float sd=dot(d,sunDirection);
