@@ -671,12 +671,13 @@ function petalGeometry(){
  const g=geometryBuffer(),shape=[[0,0,0],[-.34,.07,.20],[-.48,.13,.57],[-.32,.25,.89],[-.13,.29,1],[0,.24,.91],[.17,.29,1],[.38,.21,.84],[.47,.1,.50],[.30,.04,.19]],center=[0,.03,.48];
  for(let i=0;i<shape.length;i++){const tint=p=>color('#f6b0bf').clone().lerp(color('#ffebe1'),p[2]*.85);triangle(g,center,shape[i],shape[(i+1)%shape.length],[color('#f4b9c6'),tint(shape[i]),tint(shape[(i+1)%shape.length])])}return geometryFinish(g)
 }
-function leafGeometry(){const g=geometryBuffer();for(let i=0;i<4;i++){const t=i/4,u=(i+1)/4,w=Math.sin(t*PI)*.15,ww=Math.sin(u*PI)*.15;for(let sign of [-1,1]){triangle(g,[0,.045*Math.sin(t*PI),t],[w*sign,0,t],[ww*sign,0,u],'#839e59');triangle(g,[0,.045*Math.sin(t*PI),t],[ww*sign,0,u],[0,.045*Math.sin(u*PI),u],'#a4b277')}}return geometryFinish(g)}
+function leafGeometry(ca='#839e59',cb='#a4b277'){const g=geometryBuffer();for(let i=0;i<4;i++){const t=i/4,u=(i+1)/4,w=Math.sin(t*PI)*.15,ww=Math.sin(u*PI)*.15;for(let sign of [-1,1]){triangle(g,[0,.045*Math.sin(t*PI),t],[w*sign,0,t],[ww*sign,0,u],ca);triangle(g,[0,.045*Math.sin(t*PI),t],[ww*sign,0,u],[0,.045*Math.sin(u*PI),u],cb)}}return geometryFinish(g)}
 function distantBlossomGeometry(){const g=geometryBuffer();for(let k=0;k<5;k++){const a=k*TAU/5,ca=Math.cos(a),sa=Math.sin(a),p=v=>[v[0]*ca+v[2]*sa,v[1],v[2]*ca-v[0]*sa];triangle(g,p([0,.08,.07]),p([-.4,.26,.71]),p([.05,.32,1]),'#f1b8c8');triangle(g,p([0,.08,.07]),p([.05,.32,1]),p([.4,.26,.71]),'#ffdae2')}return geometryFinish(g)}
-function initBotany(){if(botanicalGeometry)return;botanicalGeometry={hi:blossomGeometry(true),mid:blossomGeometry(false),lo:distantBlossomGeometry(),petal:petalGeometry(),bud:new T.SphereGeometry(1,6,4),leaf:leafGeometry()};
+function initBotany(){if(botanicalGeometry)return;botanicalGeometry={hi:blossomGeometry(true),mid:blossomGeometry(false),lo:distantBlossomGeometry(),petal:petalGeometry(),bud:whiteAttr(new T.SphereGeometry(1,6,4)),leaf:leafGeometry(),card:leafGeometry('#ffffff','#ebebeb')};
  bloomHiMat=backlit(windy(new T.MeshStandardMaterial({vertexColors:true,roughness:.82,side:T.DoubleSide,emissive:C('#f4b5c6'),emissiveIntensity:.14}),'1.',.02,.012),'.8,.55,.62');bloomLoMat=bloomHiMat;
  barkMaterial=new T.MeshStandardMaterial({vertexColors:true,roughness:1});leafMaterial=backlit(windy(new T.MeshStandardMaterial({vertexColors:true,roughness:.93,side:T.DoubleSide}),'1.',.02,.012),'.6,.95,.4');
 }
+function whiteAttr(geo){geo.setAttribute('color',new T.Float32BufferAttribute(new Float32Array(geo.attributes.position.count*3).fill(1),3));return geo}
 function botanicalInstances(geo,mat,items){
  const bounded=new T.BufferGeometry();bounded.index=geo.index;bounded.attributes=geo.attributes;
  const bounds=new T.Box3();let radius=0;
@@ -697,11 +698,12 @@ function peach(x,z,scale=1,full=true){
    const t=(j+.18+rand(0,.55))/number,p=a.clone().lerp(b,t);p.y+=Math.sin(t*PI)*.06;
    for(let n=0;n<(j%3===0?3:2);n++){
     const phi=rand(0,TAU),normal=V(Math.cos(phi)*rand(.2,1),rand(-.25,1),Math.sin(phi)*rand(.2,1)).normalize(),pos=p.clone().addScaledVector(normal,.036);
-    if(rng()<.17){const bm=botanicalPose(pos,normal,rand(.033,.049),0);buds.push({matrix:bm,col:color(pick(['#bc5371','#ca6d83','#d88191']))});continue}
-    const size=rand(.09,.135);flowers.push({matrix:botanicalPose(pos,normal,size,rand(0,TAU)),col:color(pick(['#ffffff','#fff0f0','#ffe1e7','#f5cfda']))});
+    if(rng()<.17){const fs=peachWear.budS*(peachWear.bloom||hash(pos.x*3.1,pos.z*7.7+j)<.36?1:0);
+     const bm=botanicalPose(pos,normal,rand(.033,.049)*fs,0);buds.push({matrix:bm,col:color(pick(peachWear.bud))});continue}
+    const size=rand(.09,.135)*peachWear.s;flowers.push({matrix:botanicalPose(pos,normal,size,rand(0,TAU)),col:color(pick(peachWear.wear))});
     if(j%2===0&&n===0)sources.push(pos.clone());
    }
-   if(j>number-3&&rng()<.25){const normal=V(rand(-.5,.5),.8,rand(-.5,.5));leaves.push({matrix:botanicalPose(p,normal,.24,rand(0,TAU))})}
+   if(j>number-3&&rng()<.25){const normal=V(rand(-.5,.5),.8,rand(-.5,.5));leaves.push({matrix:botanicalPose(p,normal,.24*peachWear.s,rand(0,TAU)),col:color(peachWear.leaf)})}
   }
  }
  for(let i=0;i<6;i++){
@@ -715,9 +717,11 @@ function peach(x,z,scale=1,full=true){
   }
  }
  const bm=new T.Mesh(geometryFinish(wood),barkMaterial);bm.castShadow=true;bm.receiveShadow=true;g.add(bm);
- const hi=botanicalInstances(botanicalGeometry.hi,bloomHiMat,flowers),mid=botanicalInstances(botanicalGeometry.mid,bloomLoMat,flowers),lo=botanicalInstances(botanicalGeometry.lo,bloomLoMat,flowers);hi.visible=mid.visible=false;lo.castShadow=false;hi.castShadow=false;hi.receiveShadow=lo.receiveShadow=false;g.add(hi,mid,lo);
- const budMat=new T.MeshStandardMaterial({roughness:.9,color:0xffffff});const budMesh=botanicalInstances(botanicalGeometry.bud,budMat,buds);g.add(budMesh);
- if(leaves.length)g.add(botanicalInstances(botanicalGeometry.leaf,leafMaterial,leaves));
+ // 花与叶占的是同一批枝头位置，只是换了形状和颜色；白卡的本色是白的，季节色全由 instanceColor 给。
+ const wg=peachWear.bloom?botanicalGeometry:{hi:botanicalGeometry.card,mid:botanicalGeometry.card,lo:botanicalGeometry.card},wm=peachWear.bloom?bloomHiMat:leafMaterial;
+ const hi=botanicalInstances(wg.hi,wm,flowers),mid=botanicalInstances(wg.mid,peachWear.bloom?bloomLoMat:wm,flowers),lo=botanicalInstances(wg.lo,peachWear.bloom?bloomLoMat:wm,flowers);hi.visible=mid.visible=false;lo.castShadow=false;hi.castShadow=false;hi.receiveShadow=lo.receiveShadow=false;g.add(hi,mid,lo);
+ const budMat=new T.MeshStandardMaterial({roughness:.9,vertexColors:true});const budMesh=botanicalInstances(botanicalGeometry.bud,budMat,buds);g.add(budMesh);
+ if(leaves.length)g.add(botanicalInstances(botanicalGeometry.card,leafMaterial,leaves));
  for(const p of sources){const wp=p.clone().multiplyScalar(scale).add(g.position);blossomSources.push({p:wp,tree:peachTrees.length})}
  botanicalState.flowers+=flowers.length;peachTrees.push({g,hi,mid,lo,budMesh,bm,x,y,z,scale,phase:rand(0,TAU)});
 }
@@ -748,7 +752,7 @@ function makeBlossomWeather(){
   fallingData.push({p,speed,drift,ground,cycle,phase:rand(0,cycle),spin:rand(0,TAU),s:rand(.065,.12),tree:source.tree});
  }
  const land=[];for(let r of peachRoots)for(let j=0;j<76;j++){let a=rand(0,TAU),rr=Math.sqrt(rng())*3.2*r[3],x=r[0]+Math.cos(a)*rr,z=r[2]+Math.sin(a)*rr,y=height(x,z);if(y<.10||z<88)continue;land.push({matrix:botanicalPose(V(x,y+.026,z),V(rand(-.12,.12),1,rand(-.12,.12)),rand(.045,.08),rand(0,TAU)),col:color(pick(['#ffffff','#ffd9e0','#f9d5d7']))})}
- flowerGround=botanicalInstances(botanicalGeometry.petal,pm.clone(),land);flowerGround.receiveShadow=true;scene.add(flowerGround);
+ flowerGround=botanicalInstances(botanicalGeometry.petal,pm.clone(),land);flowerGround.receiveShadow=true;flowerGround.visible=blossomSeason;scene.add(flowerGround);
  streamPetals=new T.InstancedMesh(botanicalGeometry.petal,pm,260);streamPetals.frustumCulled=false;streamPetals.renderOrder=5;scene.add(streamPetals);
  for(let i=0;i<260;i++)streamPetalData.push({z:rand(90,203),offset:rand(-1.85,1.85),p:rand(0,TAU),s:rand(.055,.085)});
  updateBlossomWeather(0);
@@ -764,7 +768,10 @@ function updateBlossomWeather(t){
   a.hi.visible=d<(quality==='high'?8:5);a.mid.visible=!a.hi.visible&&d<(quality==='high'?30:18);a.lo.visible=!a.hi.visible&&!a.mid.visible;a.budMesh.visible=d<30;
  }
  if(!fallingPetals)return;
- fallingPetals.visible=!reduced;fallingPetals.count=quality==='high'?fallingData.length:Math.min(380,fallingData.length);
+ // 落英缤纷只在春天。其余三季连粒子矩阵都不必算。
+ fallingPetals.visible=streamPetals.visible=!reduced&&blossomSeason;
+ if(!blossomSeason)return;
+ fallingPetals.count=quality==='high'?fallingData.length:Math.min(380,fallingData.length);
  // Camera-dependent tree detail still updates while paused; particle matrices do not.
  if(t===lastPetalTime&&fallingPetals.count===lastPetalCount&&reduced===lastPetalReduced)return;
  lastPetalTime=t;lastPetalCount=fallingPetals.count;lastPetalReduced=reduced;
@@ -880,6 +887,15 @@ const ez={},ezSeasons={
  autumn:{pal:[['#7a2e24','#8d3a2a','#a04632','#b2543a','#c26443','#cf7550','#d9885e'],['#a25a22','#b3682a','#c37734','#d1863f','#dc964c','#e4a65c','#ebb56e'],['#9a8a2a','#ad9c32','#bfad3c','#cdbb48','#d9c85a','#e2d26e','#e9db84'],['#5c6f34','#6a7d3b','#788b44','#86984e','#94a45a','#a1af68','#aeba78']],far:[0,2]},
  winter:{pal:[['#6b5a3a','#775f3c','#83693f','#8e7344','#997d4b','#a48854','#ad935e'],['#8a7a3a','#978640','#a39247','#ae9d4f','#b8a85a','#c1b267','#c9bb76'],['#4f5a3a','#586440','#616e47','#6a784e','#748257','#7e8c61','#88966c'],['#5f6b5a','#697562','#737f6b','#7d8974','#87937e','#919d88','#9ba793']],far:[2,3],leaves:.35}},
  ezSeason=(()=>{const q=new URLSearchParams(location.search).get('season');return ezSeasons[q]?q:realSeason()})(),ezS=ezSeasons[ezSeason],ezTint=['#ffffff','#f3efd4','#d8e9df','#e4ecc2','#f2e6cc','#cfe0d4'],ezBark=['#5b6550','#66705a','#4f5946'];
+// 桃树也过四季：春花，夏叶带青桃，秋叶转色、桃子熟了，冬天只剩老枝。
+// 调色盘长度必须和春天一致：pick() 无论数组多长都只取一个随机数，
+// 但只要这里少调一次 rand，后面所有树石房舍的位置都会跟着挪。
+const PEACH_WEAR={
+ spring:{bloom:true, s:1,   wear:['#ffffff','#fff0f0','#ffe1e7','#f5cfda'],budS:1,  bud:['#bc5371','#ca6d83','#d88191'],leaf:'#8aa463'},
+ summer:{bloom:false,s:1.75,wear:['#4e7a41','#59864a','#659155','#719c61'],budS:1.5,bud:['#7d9e4e','#8aa957','#96b463'],leaf:'#5c8a4b'},
+ autumn:{bloom:false,s:1.75,wear:['#b0612c','#be7134','#c9833f','#d3954d'],budS:2.1,bud:['#c04b33','#cd5f41','#d7744f'],leaf:'#c07c38'},
+ winter:{bloom:false,s:0,   wear:['#6b6450','#79715a','#635d4c','#6f6957'],budS:0,  bud:['#6b6450','#79715a','#635d4c'],leaf:'#6b6450'}};
+const peachWear=PEACH_WEAR[ezSeason]||PEACH_WEAR.spring,blossomSeason=ezSeason==='spring';
 function ezOptions(seed,leaf,far){const L=30;return{seed,type:'deciduous',bark:{textured:false},
  branch:{levels:2,angle:{1:55,2:50},children:{0:far?3:4,1:far?2:3},force:{direction:{x:0,y:1,z:0},strength:-.01},gnarliness:{0:.08,1:.12,2:.15},length:{0:L,1:L*.55,2:L*.3},radius:{0:L*.045,1:L*.028,2:L*.018},
   sections:{0:far?4:6,1:far?3:4,2:3},segments:{0:far?4:6,1:far?3:4,2:3},start:{1:.45,2:.3},taper:{0:.6,1:.6,2:.7}},
