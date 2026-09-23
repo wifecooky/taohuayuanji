@@ -1262,46 +1262,47 @@ function fishSchool(){
   fishShader=sh};
  fishMesh=new T.InstancedMesh(geo,mat,N);
  fishMesh.frustumCulled=false;fishMesh.renderOrder=4;scene.add(fishMesh);
- for(let i=0;i<N;i++){const bright=i<5,home=bright?rand(104,140):rand(94,200);
-  const f={home,z:home,px:streamX(home),yaw:PI,s:0,vz:0,vs:0,until:0,mode:'cruise',tz:home,ts:0,sp:0,
+ // 家在池心一带：荷叶从 .44 起圈到池边，中间那片空水才是鱼转得开身的地方。
+ for(let i=0;i<N;i++){const bright=i<5,hz=bright?rand(4,11):rand(-1,15);
+  const f={hz,z:hz,yaw:PI,x:0,vz:0,vx:0,until:0,mode:'cruise',tz:hz,tx:0,sp:0,
    range:bright?rand(3,5):rand(2.4,6.5),
-   side:bright?(i-2)*.50:rand(-1.25,1.25),speed:rand(.55,1.25),depth:bright?rand(.13,.20):rand(.12,.30),
+   hx:bright?-27+(i-2)*4.4:rand(-40,-14),speed:rand(.55,1.25),depth:bright?rand(.13,.20):rand(.12,.30),
    scale:(bright?rand(1.35,1.65):rand(.70,1.25))*.65,p:rand(0,TAU)};
+  [f.hx,f.hz]=pondHold(f.hx,f.hz);f.z=f.tz=f.hz;f.x=f.tx=f.hx;
   // 背鳍不能出水：鱼越大吃水越深，吃水深度跟着体型走。
-  f.s=f.ts=f.side;f.deep=.15*f.scale+.06;f.dep=f.td=Math.max(f.depth,f.deep);
+  f.deep=.15*f.scale+.06;f.dep=f.td=Math.max(f.depth,f.deep);
   swim[i*2]=f.p;swim[i*2+1]=5.4+f.speed*2.6;
   fishData.push(f);
   fishMesh.setColorAt(i,color(bright?pick(koi):pick(drab)))}
  fishMesh.instanceColor.needsUpdate=true;
 }
 // 游动是一连串的“去那里”，不是一条正弦：到了就换一个点，谁也不跟谁同步。
-const fishLat=z=>(2.05+.4*Math.sin(z*.077))*.62;
+// 池子不是矩形，越不出去只能照池岸的曲线来：出了界就沿着到池心的方向收回来。
+function pondHold(x,z,lim=.80){const r=pondR(x,z);if(r<=lim)return[x,z];const k=lim/r;return[-27+(x+27)*k,7+(z-7)*k]}
 function fishPlan(f,t){const r=Math.random();
  f.mode=r<.17?'dart':r<.60?'hover':'cruise';
  f.until=t+(f.mode==='dart'?.7+Math.random()*1.1:f.mode==='hover'?1.5+Math.random()*2.0:2.4+Math.random()*3.2);
  const reach=f.mode==='dart'?f.range*1.15:f.mode==='hover'?f.range*.20:f.range;
- f.tz=clamp(f.home+(Math.random()*2-1)*reach,90,206);
- const lat=fishLat(f.tz);
- f.ts=clamp(f.side+(Math.random()*2-1)*(f.mode==='hover'?.35:1.05),-lat,lat);
+ const a=Math.random()*TAU,d=reach*Math.sqrt(Math.random());
+ [f.tx,f.tz]=pondHold(f.hx+Math.cos(a)*d,f.hz+Math.sin(a)*d);
  f.td=clamp(f.depth+(Math.random()*2-1)*.06,f.deep,.34);
  f.sp=f.speed*(f.mode==='dart'?1.7+Math.random()*.9:f.mode==='hover'?.10+Math.random()*.22:.45+Math.random()*.55);
 }
 function swimFish(t,dt){if(!fishMesh)return;fishMesh.visible=!reduced;
  if(fishShader)fishShader.uniforms.swimTime.value=t;
- const st=Math.min(dt,.05),inv=1/Math.max(st,1e-3);
+ const st=Math.min(dt,.05);
  fishData.forEach((f,i)=>{
   if(t>=f.until)fishPlan(f,t);
-  const dz=f.tz-f.z,ds=f.ts-f.s,d=Math.hypot(dz,ds),ease=Math.min(1,d/.6),k=Math.min(1,st*(f.mode==='dart'?5.5:2.2));
+  const dz=f.tz-f.z,dx=f.tx-f.x,d=Math.hypot(dz,dx),ease=Math.min(1,d/.6),k=Math.min(1,st*(f.mode==='dart'?5.5:2.2));
   f.vz+=((d>1e-4?dz/d*f.sp*ease:0)-f.vz)*k;
-  f.vs+=((d>1e-4?ds/d*f.sp*ease:0)-f.vs)*k;
-  f.z=clamp(f.z+f.vz*st,89,208);f.s+=f.vs*st;
-  const lat=fishLat(f.z);
-  if(f.s>lat){f.s=lat;f.vs=Math.min(f.vs,0)}else if(f.s<-lat){f.s=-lat;f.vs=Math.max(f.vs,0)}
+  f.vx+=((d>1e-4?dx/d*f.sp*ease:0)-f.vx)*k;
+  const nx=f.x+f.vx*st,nz=f.z+f.vz*st,[hx,hz]=pondHold(nx,nz);
+  if(hx!==nx||hz!==nz){f.vx*=.25;f.vz*=.25}
+  f.x=hx;f.z=hz;
   f.dep+=(f.td-f.dep)*Math.min(1,st*.9);
-  const x=streamX(f.z)+f.s,vx=(x-f.px)*inv;f.px=x;
-  if(vx*vx+f.vz*f.vz>4e-4){const want=Math.atan2(vx,f.vz);
+  if(f.vx*f.vx+f.vz*f.vz>4e-4){const want=Math.atan2(f.vx,f.vz);
    f.yaw+=(((want-f.yaw+PI)%TAU+TAU)%TAU-PI)*Math.min(1,st*3.2)}
-  dummy.position.set(x,.045-f.dep,f.z);
+  dummy.position.set(f.x,.045-f.dep,f.z);
   dummy.rotation.set(clamp((f.td-f.dep)*1.2,-.22,.22),f.yaw,0);
   dummy.scale.setScalar(f.scale);dummy.updateMatrix();fishMesh.setMatrixAt(i,dummy.matrix)});
  fishMesh.instanceMatrix.needsUpdate=true;
