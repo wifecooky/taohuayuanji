@@ -752,8 +752,13 @@ function meadowExtras(){
  // Slender young blades, with flowering wood only along these banks.
  for(let i=0;i<7500;i++){
   const z=rand(90,204),side=rng()<.5?-1:1,x=streamX(z)+side*rand(3.4,12),y=height(x,z);if(y>3.4||y<.14)continue;
-  const h=rand(.13,.43),w=rand(.012,.035),a=rand(0,TAU),vx=Math.cos(a),vz=Math.sin(a),lean=rand(.06,.16);const col=pick(['#668657','#85a463','#a4ba7f','#739354']);
-  triangle(grass,[x-w*vx,y+.012,z-w*vz],[x+w*vx,y+.012,z+w*vz],[x+lean,y+h,z+.07],col)
+  const h=rand(.26,.58),w=rand(.009,.016),a=rand(0,TAU),vx=Math.cos(a),vz=Math.sin(a),bend=rand(.55,1.25);const col=pick(['#668657','#85a463','#a4ba7f','#739354']);
+  // 一片叶分三节：宽度一路收到尖，横偏按 t² 增长——草是弯垂的，不是直插在地上的钉子
+  const ux=-vz,uz=vx;let px=x,py=y+.012,pz=z,pw=w;
+  for(let k=1;k<=3;k++){const t=k/3,nw=w*(1-t*t*.94),o=bend*h*t*t*.62,nx=x+ux*o,ny=y+.012+h*t*(1-.20*t*t),nz=z+uz*o;
+   if(k<3){triangle(grass,[px-pw*vx,py,pz-pw*vz],[px+pw*vx,py,pz+pw*vz],[nx+nw*vx,ny,nz+nw*vz],col);triangle(grass,[px-pw*vx,py,pz-pw*vz],[nx+nw*vx,ny,nz+nw*vz],[nx-nw*vx,ny,nz-nw*vz],col)}
+   else triangle(grass,[px-pw*vx,py,pz-pw*vz],[px+pw*vx,py,pz+pw*vz],[nx,ny,nz],col);
+   px=nx;py=ny;pz=nz;pw=nw}
  }
  const m=new T.Mesh(geometryFinish(grass),new T.MeshStandardMaterial({vertexColors:true,roughness:1,side:T.DoubleSide}));m.receiveShadow=true;scene.add(m);
  // Rocks and a branch frame the default inner-valley view, without inventing an interior peach orchard.
@@ -1609,7 +1614,7 @@ function narrativeGeometry(){
  storyCast=[host,elder,guest].map(g=>animated.find(a=>a.root===g));
  for(let [x,z,col,fem] of [[16.2,-11.2,'#b0895c'],[22.5,-12.2,'#5d6f8f',true],[23.2,-10.8,'#8a5f52']]){const g=person(x,z,'chat',0,.98,col,{female:fem});g.visible=false;visitors.push(g)}
  secondHost=person(38.8,-30.0,'chat',0,1,'#7a6a8c');secondHost.visible=false;
- storyFisher=animated.find(a=>a.type==='human'&&a.z===96)?.root;
+ storyFisher=animated.find(a=>a.type==='human'&&a.z===96)?.root;if(storyFisher){storyFisher.visible=false;storyFisher.userData.anim.cast=true}// 渔人也是戏里的人：不归作息表管，只由剧本叫上叫下
  
  // A restrained scene at the governor's offices, outside the hidden valley.
  house(-23,252,9,6,0,false,5);path([[-35,268],[-28,263],[-23,258]],1.7,'#b9ac8c');
@@ -1639,7 +1644,7 @@ function applyNarrativeWorld(i,u){
  searchParty.forEach(g=>{g.visible=on&&(i===17||i===18);pose(g.userData.anim,on&&i===17?'walk':'idle')});
  meal.userData.food.visible=indoors&&(i>9||u>.57);secondMeal.userData.food.visible=on&&i>=12;
  story.marks=i>15?3:i===15?[.24,.53,.80].filter(v=>u>v).length:0;trailMarks.forEach((g,j)=>g.visible=on&&((i===15&&u>[.24,.53,.80][j])||i>15));
- if(storyFisher){storyFisher.visible=!on||i===3||i===8||i===13||i===16;if(!on||i===3){storyFisher.position.set(streamX(96)-3.7,Math.max(.43,height(streamX(96)-3.7,96))+.1,96);storyFisher.rotation.y=2.5}else if(i===8){storyFisher.position.set(19.8,.55,-9);faceToward(storyFisher,21,-10)}else if(i===13){storyFisher.position.set(36.2,.55,-27.6);faceToward(storyFisher,38.8,-30)}else if(i===16){storyFisher.position.set(-24.3,.55,260);faceToward(storyFisher,-23,256.8)}}
+ if(storyFisher){storyFisher.visible=on&&(i===3||i===8||i===13||i===16);if(!on||i===3){storyFisher.position.set(streamX(96)-3.7,Math.max(.43,height(streamX(96)-3.7,96))+.1,96);storyFisher.rotation.y=2.5}else if(i===8){storyFisher.position.set(19.8,.55,-9);faceToward(storyFisher,21,-10)}else if(i===13){storyFisher.position.set(36.2,.55,-27.6);faceToward(storyFisher,38.8,-30)}else if(i===16){storyFisher.position.set(-24.3,.55,260);faceToward(storyFisher,-23,256.8)}}
  if(on&&(i<3||i===15||i===17)){let z=i===0?mix(225,205,u):i===1?mix(205,158,u):i===2?mix(158,96,u):i===15?mix(96,177,smooth(.07,1,u)):mix(167,125,u);fisherBoat.position.set(streamX(z)+.35,.07,z);fisherBoat.rotation.y=Math.atan2(streamX(z-1)-streamX(z+1),-2);if(i===15)fisherBoat.rotation.y+=PI;dockRope.visible=false;boatPaddle.rotation.y=.055*Math.sin(story.elapsed*.9)}else dockBoat();
  if(on&&i===17){const z=mix(167,125,u);searchParty.forEach((g,k)=>{const zz=z-4+k*2.9;g.position.set(streamX(zz)-3.7,height(streamX(zz)-3.7,zz)+.1,zz);g.rotation.y=PI})}
  if(on&&i===18)searchParty.forEach((g,k)=>{const zz=125+k*2;g.position.set(streamX(zz)-3.7,height(streamX(zz)-3.7,zz)+.1,zz);g.rotation.y=-1.6})
