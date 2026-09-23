@@ -1516,7 +1516,8 @@ let waterXZ=null,streamGain=1,birdGain=1;const houseBoxes=[];
 function ambientTarget(){if(!waterXZ){const a=[];for(const m of waterMeshes){const p=m.geometry.attributes.position;for(let i=0;i<p.count;i++)a.push(p.getX(i)+m.position.x,p.getZ(i)+m.position.z)}waterXZ=new Float32Array(a)}
  const cx=camera.position.x,cz=camera.position.z;let d2=1e9;for(let i=0;i<waterXZ.length;i+=2){const dx=waterXZ[i]-cx,dz=waterXZ[i+1]-cz,q=dx*dx+dz*dz;if(q<d2)d2=q}
  const indoor=houseBoxes.some(([x,z,w,d,a])=>{const ca=Math.cos(a),sa=Math.sin(a),px=cx-x,pz=cz-z;return Math.abs(px*ca-pz*sa)<w/2+.3&&Math.abs(px*sa+pz*ca)<d/2+.3});
- return{stream:mix(1,.15,smooth(4,30,Math.sqrt(d2)))*(indoor?.3:1),birds:indoor?.35:1}}
+ const duck=narrationDuck();
+ return{stream:mix(1,.15,smooth(4,30,Math.sqrt(d2)))*(indoor?.3:1)*duck,birds:(indoor?.35:1)*duck}}
 function updateAmbient(dt){if(!audioEnabled||frame%6)return;const t=ambientTarget(),k=Math.min(1,dt*6*1.5);streamGain+=(t.stream-streamGain)*k;birdGain+=(t.birds-birdGain)*k;ambientTracks.stream.volume=.18*streamGain;ambientTracks.birds.volume=.09*birdGain}
 async function toggleAudio(force){const next=typeof force==='boolean'?force:!audioEnabled;try{if(!next){audioEnabled=false;Object.values(ambientTracks).forEach(track=>track.pause());updateAmbientUI();return}await Promise.all(Object.values(ambientTracks).map(track=>track.play()));audioEnabled=true;updateAmbientUI();toast('环境音已开启 · 溪水与林间鸟鸣')}catch(e){audioEnabled=false;Object.values(ambientTracks).forEach(track=>track.pause());updateAmbientUI();toast('环境音未能开启，请再次点击声音按钮')}}
 function updatePauseUI(){icon('pause',paused?'play':'pause');$('pause').classList.toggle('active',paused);$('pause').setAttribute('aria-pressed',paused);$('pause').setAttribute('aria-label',paused?'继续动态 · 空格':'暂停动态 · 空格')}
@@ -1730,6 +1731,17 @@ const narrationTimeline=[
  [18,257.200,262.080],
  [19,265.430,272.680],[19,272.680,277.030],[19,279.830,283.680]
 ];
+// 朗读让位：人声出声时环境音压到四成半，水声退后但不断线。
+// 句读之间不放开——间隔短于 3.5 秒的句子并成一段，否则水声会在每个逗号处抽一口气。
+// 合并后只剩三段人声，放回满值的是真正的配乐段落：开场引子、两处长间奏。
+const AMBIENT_DUCK=.45;
+const narrationSpans=narrationTimeline.map(v=>[v[1],v[2]]).sort((a,b)=>a[0]-b[0]).reduce((spans,v)=>{
+ const last=spans[spans.length-1];if(last&&v[0]-last[1]<3.5)last[1]=Math.max(last[1],v[1]);else spans.push(v.slice());return spans},[]);
+function narrationDuck(){
+ if(!story.active||!story.voice||narrationAudio.paused)return 1;
+ const t=narrationAudio.currentTime;
+ return narrationSpans.some(v=>t>=v[0]-.25&&t<=v[1]+.45)?AMBIENT_DUCK:1;
+}
 const chapterAudioBounds=[
  [NARRATION_LEAD,58.480],[58.480,72.640],[72.640,93.440],[93.440,97.920],[97.920,106.400],
  [106.400,148.470],[148.470,153.190],[153.190,164.640],[164.640,173.120],[173.120,182.720],
