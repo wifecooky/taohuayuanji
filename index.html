@@ -1705,6 +1705,9 @@ const NARRATION_LEAD=36;// 录音前 44 秒是纯配乐，从 36 秒起播，留
 const narrationAudio=new Audio(NARRATION_SRC);
 narrationAudio.preload='auto';
 narrationAudio.volume=.92;
+// 要播的是 NARRATION_LEAD 处，不是 0 秒。元数据一到就把播放头挪过去，预缓冲才落在真正要用的位置；
+// 若此前已有别处（例如读档续播）挪过播放头，就不再插手。
+narrationAudio.addEventListener('loadedmetadata',()=>{if(!narrationAudio.currentTime)narrationAudio.currentTime=NARRATION_LEAD},{once:true});
 const narrationTimeline=[
  [0,44.010,50.640],[0,52.320,56.560],
  [1,58.480,69.840],
