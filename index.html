@@ -1837,7 +1837,7 @@ function setStoryTopHidden(hidden){
  if(hidden&&$('story-top').contains(document.activeElement))$('story-top-restore').focus({preventScroll:true});
 }
 function startStory(index=0,resume=false){
-
+ resume=resume&&!!story.saved;
  if(tour.active)stopTour();if(story.active)stopStory(false);
  story.oldPaused=paused;story.oldWeather=weatherName;story.active=true;story.paused=false;story.finished=false;story.waiting=false;story.index=0;story.elapsed=0;story.lookX=story.lookY=0;story.zoom=1;story.static=reduced;storyLastWeather='';manualLook=null;paused=reduced;
  if(resume&&story.saved){const s=story.saved;story.done=new Set((s.done||[]).filter(n=>Number.isInteger(n)&&n>=0&&n<20));story.visited=new Set((s.visited||[]).filter(n=>Number.isInteger(n)&&n>=0&&n<20));story.marks=clamp(s.marks||0,0,3);story.auto=reduced?false:!!s.auto;story.reading=['both','gloss','original'].includes(s.reading)?s.reading:'both';story.speed=[.75,1,1.25,1.5].includes(s.speed)?s.speed:1;index=s.index;}
